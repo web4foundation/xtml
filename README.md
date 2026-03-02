@@ -1,5 +1,5 @@
 # XTML
-A hopeful candidate recommendation for HTML6
+A hopeful W3C candidate recommendation for HTML6
 - Multi-language `<script>` tags
 - Reactivity as an HTML primitive
   - Multiplayer-reactivity via WebSockets

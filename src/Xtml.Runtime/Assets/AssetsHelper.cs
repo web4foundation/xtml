@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Xtml.Runtime.Assets;
@@ -8,9 +9,14 @@ public static class AssetsHelper
     private static readonly Lazy<byte[]> Js = new(() => Load("ui.js"));
     private static readonly Lazy<byte[]> JsGzip = new(() => CompressGZip(Js.Value));
     private static readonly Lazy<byte[]> JsBr = new(() => CompressBrotli(Js.Value));
+
     private static readonly Lazy<byte[]> Css = new(() => Load("ui.css"));
     private static readonly Lazy<byte[]> CssGzip = new(() => CompressGZip(Css.Value));
     private static readonly Lazy<byte[]> CssBr = new(() => CompressBrotli(Css.Value));
+
+    private static readonly Lazy<byte[]> Sw = new(() => Load("sw.js"));
+    private static readonly Lazy<byte[]> SwGzip = new(() => CompressGZip(Sw.Value));
+    private static readonly Lazy<byte[]> SwBr = new(() => CompressBrotli(Sw.Value));
 
     public static byte[] JS => Js.Value;
     public static byte[] JS_GZIP => JsGzip.Value;
@@ -20,46 +26,33 @@ public static class AssetsHelper
     public static byte[] CSS_GZIP => CssGzip.Value;
     public static byte[] CSS_BR => CssBr.Value;
 
-    public static (byte[] Body, string? ContentEncoding) GetJs(string? acceptEncoding)
-    {
-        if (acceptEncoding is not null)
-        {
-            if (Accepts(acceptEncoding, "br"))
-                return (JS_BR, "br");
-            if (Accepts(acceptEncoding, "gzip"))
-                return (JS_GZIP, "gzip");
-        }
+    public static byte[] SW => Sw.Value;
+    public static byte[] SW_GZIP => SwGzip.Value;
+    public static byte[] SW_BR => SwBr.Value;
 
-        return (JS, null);
-    }
+    public static (byte[] Body, string? ContentEncoding) GetJs(string? acceptEncoding)
+        => acceptEncoding switch
+        {
+            string s when s.Contains("br") => (JS_BR, "br"),
+            string s when s.Contains("gzip") => (JS_GZIP, "gzip"),
+            _ => (JS, null),
+        };
 
     public static (byte[] Body, string? ContentEncoding) GetCss(string? acceptEncoding)
-    {
-        if (acceptEncoding is not null)
+        => acceptEncoding switch
         {
-            if (Accepts(acceptEncoding, "br"))
-                return (CSS_BR, "br");
-            if (Accepts(acceptEncoding, "gzip"))
-                return (CSS_GZIP, "gzip");
-        }
+            string s when s.Contains("br") => (CSS_BR, "br"),
+            string s when s.Contains("gzip") => (CSS_GZIP, "gzip"),
+            _ => (CSS, null),
+        };
 
-        return (CSS, null);
-    }
-
-    private static bool Accepts(string acceptEncoding, string encoding)
-    {
-        foreach (var part in acceptEncoding.Split(','))
+    public static (byte[] Body, string? ContentEncoding) GetSw(string? acceptEncoding)
+        => acceptEncoding switch
         {
-            var token = part.AsSpan().Trim();
-            var semicolon = token.IndexOf(';');
-            if (semicolon >= 0)
-                token = token[..semicolon].Trim();
-            if (token.Equals(encoding, StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        return false;
-    }
+            string s when s.Contains("br") => (SW_BR, "br"),
+            string s when s.Contains("gzip") => (SW_GZIP, "gzip"),
+            _ => (SW, null),
+        };
 
     private static byte[] Load(string resourceName) =>
         Encoding.UTF8.GetBytes(new StreamReader(typeof(AssetsHelper).Assembly

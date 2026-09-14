@@ -75,6 +75,10 @@ public static partial class Extensions
                 WriteAsset(context, "text/css", AssetsHelper.GetCss(context.Request.Headers.AcceptEncoding.ToString()));
             });
                 
+            app.Map("/_app/websocket/sw.js", (HttpContext context) => {
+                context.Response.Headers["Service-Worker-Allowed"] = "/";
+                WriteAsset(context, "text/javascript", AssetsHelper.GetSw(context.Request.Headers.AcceptEncoding.ToString()));
+            });
 
             app.Map("/_app/alive", async httpContext =>
             {

@@ -29,14 +29,14 @@ public static partial class Extensions
         Func<Html> template)
     {
         var applicationBuilder = app.UseWebSockets();
+        var windowBuilder = new WindowBuilder(template);
         var group = app.MapGroup(pattern);
-        var window = new WindowBuilder(template);
 
         group.Map("/", async httpContext =>
         {
             var pipeWriter = httpContext.Response.BodyWriter;
-            var composer = HtmlKeyComposer.Reuse(pipeWriter, window);
-            await httpContext.WriteAsync(composer, window.Template);
+            var composer = HtmlKeyComposer.Reuse(pipeWriter, windowBuilder);
+            await httpContext.WriteAsync(composer, windowBuilder.Template);
         });
 
         group.Map("/ui.ws", async httpContext =>
@@ -46,7 +46,7 @@ public static partial class Extensions
                 var logger = app.Services.GetRequiredService<ILogger<Bridge>>();
                 await Bridge.Bind(
                     httpContext,
-                    window,
+                    windowBuilder,
                     logger,
                     app.Lifetime.ApplicationStopping
                 );
@@ -75,7 +75,7 @@ public static partial class Extensions
             });
         }
 
-        return window;
+        return windowBuilder;
     }
 
     private static void WriteAsset(HttpContext context, string contentType, (byte[] Body, string? ContentEncoding) asset)

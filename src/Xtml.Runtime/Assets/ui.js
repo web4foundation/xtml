@@ -502,6 +502,3 @@ HTMLDocument.prototype.unregisterKeyholes = function() {
 HTMLDocument.prototype.setTitle = (t) => document.title = t;
 Window.prototype.setLocation = (l) => window.location = l;
 
-Window.prototype.setLocation = function(location) {
-  window.location = location;
-};

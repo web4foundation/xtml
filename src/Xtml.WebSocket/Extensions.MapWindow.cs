@@ -34,6 +34,14 @@ public static partial class Extensions
 
         group.Map("/", async httpContext =>
         {
+            // TODO: Make ContentSecurityPolicy a part of config?
+            // img-src *;                           No restrictions on image sources
+            // style-src 'self' 'unsafe-inline';    Allows inline and same-origin styles
+            // script-src-elem 'self';              Scripts are same-origin only (<script src="..."> and <script>...</script>)
+            // script-src-attr 'unsafe-inline';     Inline event handlers are allowed (onclick="..." etc)
+            httpContext.Response.Headers.ContentSecurityPolicy = "img-src *; style-src 'self' 'unsafe-inline'; script-src-elem 'self'; script-src-attr 'unsafe-inline';";
+            httpContext.Response.ContentType = "text/html; charset=utf-8";
+
             var pipeWriter = httpContext.Response.BodyWriter;
             var composer = HtmlKeyComposer.Reuse(pipeWriter, windowBuilder);
             await httpContext.WriteAsync(composer, windowBuilder.Template);

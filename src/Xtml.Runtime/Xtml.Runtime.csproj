@@ -28,6 +28,7 @@
     <ProjectReference Include="../Xtml.Templating/Xtml.Templating.csproj" />
     <EmbeddedResource Include="Assets/ui.js" />
     <EmbeddedResource Include="Assets/ui.css" />
+    <EmbeddedResource Include="Assets/sw.js" />
     <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
   

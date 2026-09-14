@@ -503,6 +503,6 @@ HTMLDocument.prototype.setTitle = function(title) {
   document.title = title;
 };
 
-window.setLocation = function(location) {
+Window.prototype.setLocation = function(location) {
   window.location = location;
 };

@@ -499,9 +499,8 @@ HTMLDocument.prototype.unregisterKeyholes = function() {
 // While keyholes operate as a surrogate for manipulating DOM *elements* using a reactive programming model,
 // the DOM still has many of these properties scattered throughout that operate outside the scope of keyholes.
 
-HTMLDocument.prototype.setTitle = function(title) {
-  document.title = title;
-};
+HTMLDocument.prototype.setTitle = (t) => document.title = t;
+Window.prototype.setLocation = (l) => window.location = l;
 
 Window.prototype.setLocation = function(location) {
   window.location = location;

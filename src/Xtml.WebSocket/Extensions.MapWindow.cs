@@ -53,7 +53,7 @@ public static partial class Extensions
             }
         });
 
-        if (!applicationBuilder.Properties.TryGetValue("IS_XTML_MAPPED", out var isXtmlMapped))
+        if (!applicationBuilder.Properties.TryGetValue("IS_XTML_MAPPED", out _))
         {
             applicationBuilder.Properties["IS_XTML_MAPPED"] = true;
 

@@ -74,7 +74,7 @@ public static partial class Extensions
                 context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
                 WriteAsset(context, "text/css", AssetsHelper.GetCss(context.Request.Headers.AcceptEncoding.ToString()));
             });
-                
+
             app.Map("/_app/websocket/sw.js", (HttpContext context) => {
                 context.Response.Headers["Service-Worker-Allowed"] = "/";
                 WriteAsset(context, "text/javascript", AssetsHelper.GetSw(context.Request.Headers.AcceptEncoding.ToString()));

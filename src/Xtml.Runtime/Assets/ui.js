@@ -501,4 +501,40 @@ HTMLDocument.prototype.unregisterKeyholes = function() {
 
 HTMLDocument.prototype.setTitle = (t) => document.title = t;
 Window.prototype.setLocation = (l) => window.location = l;
+CookieStore.prototype.value = (name) => 
+  decodeURIComponent(document.cookie)
+  ?.split(';')
+  ?.find(cookie => cookie.trim().startsWith(name + '='))
+  ?.substring(name.length + 1);
 
+window.id = window.cookieStore.value("x-window");
+
+if (!window.id) {
+  // No window.id found.  Attempt duplicate tab protection.
+  if (window.name != 'duplicate-tab-protection') {
+    window.name = 'duplicate-tab-protection';
+    window.location.reload();
+  } else {
+    throw new Error("Unable to determine window ID");
+  }
+}
+
+navigator.serviceWorker.register(`/_app/websocket/sw.js`, { scope: `/` })
+  .then((registration) => { })
+  .catch((error) => {
+    console.error('Service Worker registration failed:', error);
+  });
+
+navigator.serviceWorker.ready.then((registration) => {
+  const sw = registration.active;
+  sw?.postMessage({ type: 'register-window', window: window.id });
+});
+
+// Survive page reloads by stashing the window ID in sessionStorage 
+// until the next page loads and removes it.
+window.addEventListener('pagehide', () => {
+  sessionStorage.setItem("x-window", window.id);
+  const sw = navigator.serviceWorker.controller;
+  sw?.postMessage({ type: 'unregister-window', window: window.id });
+});
+sessionStorage.removeItem("x-window");

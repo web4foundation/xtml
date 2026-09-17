@@ -42,6 +42,8 @@ public static partial class Extensions
             httpContext.Response.Headers.ContentSecurityPolicy = "img-src *; style-src 'self' 'unsafe-inline'; script-src-elem 'self'; script-src-attr 'unsafe-inline';";
             httpContext.Response.ContentType = "text/html; charset=utf-8";
 
+            var (clientId, windowId) = GetOrCreateIds(httpContext);
+
             var pipeWriter = httpContext.Response.BodyWriter;
             var composer = HtmlKeyComposer.Reuse(pipeWriter, windowBuilder);
             await httpContext.WriteAsync(composer, windowBuilder.Template);
@@ -49,6 +51,9 @@ public static partial class Extensions
 
         group.Map("/ui.ws", async httpContext =>
         {
+            var clientId = httpContext.Request.Cookies["x-client"];
+            var windowId = httpContext.Request.Cookies["x-window"];
+
             if (httpContext.WebSockets.IsWebSocketRequest)
             {
                 var logger = app.Services.GetRequiredService<ILogger<Bridge>>();
@@ -130,5 +135,33 @@ public static partial class Extensions
 
             return pipeWriter.FlushAsync(httpContext.RequestAborted);
         }
+    }
+
+    private static (string, string) GetOrCreateIds(HttpContext httpContext)
+    {
+        var clientId = httpContext.Request.Cookies["x-client"];
+        if (string.IsNullOrEmpty(clientId))
+        {
+            clientId = Guid.NewGuid().ToString();
+            httpContext.Response.Cookies.Append("x-client", clientId, new CookieOptions
+            {
+                HttpOnly = true,
+                SameSite = SameSiteMode.Strict,
+                Secure = httpContext.Request.IsHttps
+            });
+        }
+        
+        var windowId = httpContext.Request.Headers["x-window"].ToString();
+        if (string.IsNullOrEmpty(windowId))
+            windowId = Guid.NewGuid().ToString();
+        // Always set a 1s cookie for x-window.  This is how the websocket identifies itself.
+        httpContext.Response.Cookies.Append("x-window", windowId, new CookieOptions
+        {
+            HttpOnly = false,
+            SameSite = SameSiteMode.Strict,
+            MaxAge = TimeSpan.FromSeconds(1),
+        });
+        
+        return (clientId, windowId);
     }
 }

@@ -26,7 +26,7 @@ Html Demo() => $"""
     </div>
 """;
 
-var window = app.MapWindow("/grant/rotate", () => $$"""
+var window = app.MapUI("/grant/rotate", () => $$"""
     <!doctype html>
     <html>
         <head>
@@ -99,7 +99,7 @@ window.AddEventListener("deviceorientation", (Event.DeviceOrientation e) =>
   gamma = (int)e.Gamma;
 });
 
-app.MapWindow("/grant", () => $$"""
+app.MapUI("/grant", () => $$"""
 <!doctype html>
 <html>
 <head>

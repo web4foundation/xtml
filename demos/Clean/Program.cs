@@ -13,7 +13,7 @@ List<string> names = ["one", "two", "three", "four", "five", "six", "seven"];
 Color color = Color.FromArgb(0xf2f2f7);
 bool b = true;
 
-app.MapWindow("/list", () => $"""
+app.MapUI("/list", () => $"""
     <!doctype html>
     <html>
         <head>
@@ -119,14 +119,14 @@ void RemoveOne()
     names.RemoveAt(i);
 }
 
-app.MapWindow("/swiftui", () => $"""
+app.MapUI("/swiftui", () => $"""
     <col>
         { Icons.Globe }
         Hello, World!
     </col>
     """);
 
-var window = app.MapWindow("/app", () => $"""
+var window = app.MapUI("/app", () => $"""
     <!doctype html>
     <html>
         <head>

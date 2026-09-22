@@ -101,7 +101,7 @@ app.MapGet("/guids", () => $"""
   </html>
   """);
 
-app.MapWindow("/guids/xtml", () => $"""
+app.MapUI("/guids/xtml", () => $"""
   <!doctype html>
   <html lang="en">
       <head>

@@ -23,7 +23,7 @@ public static partial class Extensions
     /// <param name="pattern">The route pattern.</param>
     /// <param name="template">The delegate executed when the endpoint is matched.</param>
     /// <returns>A <see cref="WindowBuilder"/> that can be used to listen to events or further customize the endpoint.</returns>
-    public static WindowBuilder MapWindow(
+    public static WindowBuilder MapUI(
         this WebApplication app,
         [StringSyntax("Route")] string pattern,
         Func<Html> template)

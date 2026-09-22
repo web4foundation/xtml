@@ -122,10 +122,10 @@ void RemoveOne()
 }
 
 app.MapWindow("/swiftui", () => $"""
-    <column>
+    <col>
         { Icons.Globe }
         Hello, World!
-    </column>
+    </col>
     """);
 
 var window = app.MapWindow("/app", () => $"""

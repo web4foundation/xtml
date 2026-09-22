@@ -39,7 +39,7 @@ public static partial class Extensions
             // style-src 'self' 'unsafe-inline';    Allows inline and same-origin styles
             // script-src-elem 'self';              Scripts are same-origin only (<script src="..."> and <script>...</script>)
             // script-src-attr 'unsafe-inline';     Inline event handlers are allowed (onclick="..." etc)
-            httpContext.Response.Headers.ContentSecurityPolicy = "img-src *; style-src 'self' 'unsafe-inline'; script-src-elem 'self'; script-src-attr 'unsafe-inline';";
+            // httpContext.Response.Headers.ContentSecurityPolicy = "img-src *; style-src 'self' 'unsafe-inline'; script-src-elem 'self'; script-src-attr 'unsafe-inline';";
             httpContext.Response.ContentType = "text/html; charset=utf-8";
 
             var (clientId, windowId) = GetOrCreateIds(httpContext);

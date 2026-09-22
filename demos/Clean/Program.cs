@@ -20,8 +20,6 @@ app.MapWindow("/list", () => $"""
             {$"<title>Clean {name} {c}!</title>"}
         </head>
         <body>
-            {$"<h1>Hello {c:c} {name}!</h1>"}
-
             {GetList()}
         </body>
     </html>

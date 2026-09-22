@@ -1,16 +1,18 @@
-body {
+body:has(col, row, list) { margin: 0; }
+
+col, row, list, lr, ld {
     font-family: system-ui;
-    margin: 0;
     touch-action: pan-x pan-y;
-    display: flex; flex-direction: column; justify-content: center;
+    display: flex;
+    justify-content: center;
+
+    svg    { margin: 8px; }
+    button { height: 44px; }
 }
-column { display: flex; flex-direction: column; justify-content: center; }
-row    { display: flex; flex-direction: row;    justify-content: center; }
-list   { display: flex; flex-direction: column; justify-content: center; height: 100vh; }
-lr     { display: flex; flex-direction: row;    justify-content: center; }
-ld     { display: flex; flex-direction: column; justify-content: center; }
-svg    { margin: 8px; }
-button { height: 44px; }
+
+col, list, ld { flex-direction: column; }
+row, lr       { flex-direction: row; }
+list          { height: 100vh; }
 
 @keyframes slide-in        { from { opacity: 0; translate: 50px; } }
 @keyframes slide-out       { to   { opacity: 0; translate: -50px; } }

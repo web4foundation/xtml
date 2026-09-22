@@ -348,7 +348,6 @@ public class HtmlKeyComposer(IBufferWriter<byte> writer, WindowBuilder window)
                 <script src="/_app/websocket/ui.js" defer></script>
                 <link href="/_app/base/ui.css" rel="stylesheet" />
                 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-                <meta charset="UTF-8">
 
         """u8);
 

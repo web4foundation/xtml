@@ -1,3 +1,4 @@
+#!/usr/bin/dotnet run
 #:sdk Microsoft.NET.Sdk.Web
 #:project ../../src/Xtml.WebSocket/Xtml.WebSocket.csproj
 

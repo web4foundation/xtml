@@ -55,8 +55,7 @@ public static partial class Extensions
             if (!Guid.TryParse(cookies["x-client"], out Guid clientId) || 
                 !Guid.TryParse(cookies["x-window"], out Guid windowId))
             {
-                httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-                await httpContext.Response.WriteAsync("Invalid client or window ID.");
+                // TODO: Fix infinite loop here.
                 return;
             }
 

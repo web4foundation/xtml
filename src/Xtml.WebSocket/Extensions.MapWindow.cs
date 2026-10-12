@@ -51,8 +51,14 @@ public static partial class Extensions
 
         group.Map("/ui.ws", async httpContext =>
         {
-            var clientId = httpContext.Request.Cookies["x-client"];
-            var windowId = httpContext.Request.Cookies["x-window"];
+            var cookies = httpContext.Request.Cookies;
+            if (!Guid.TryParse(cookies["x-client"], out Guid clientId) || 
+                !Guid.TryParse(cookies["x-window"], out Guid windowId))
+            {
+                httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await httpContext.Response.WriteAsync("Invalid client or window ID.");
+                return;
+            }
 
             if (httpContext.WebSockets.IsWebSocketRequest)
             {
@@ -137,25 +143,24 @@ public static partial class Extensions
         }
     }
 
-    private static (string, string) GetOrCreateIds(HttpContext httpContext)
+    private static (Guid, Guid) GetOrCreateIds(HttpContext httpContext)
     {
-        var clientId = httpContext.Request.Cookies["x-client"];
-        if (string.IsNullOrEmpty(clientId))
+        var request = httpContext.Request;
+        if (!Guid.TryParse(request.Cookies["x-client"], out Guid clientId))
         {
-            clientId = Guid.NewGuid().ToString();
-            httpContext.Response.Cookies.Append("x-client", clientId, new CookieOptions
+            clientId = Guid.NewGuid();
+            httpContext.Response.Cookies.Append("x-client", clientId.ToString(), new CookieOptions
             {
                 HttpOnly = true,
                 SameSite = SameSiteMode.Strict,
-                Secure = httpContext.Request.IsHttps
+                Secure = request.IsHttps
             });
         }
         
-        var windowId = httpContext.Request.Headers["x-window"].ToString();
-        if (string.IsNullOrEmpty(windowId))
-            windowId = Guid.NewGuid().ToString();
+        if (!Guid.TryParse(request.Headers["x-window"], out Guid windowId))
+            windowId = Guid.NewGuid();
         // Always set a 1s cookie for x-window.  This is how the websocket identifies itself.
-        httpContext.Response.Cookies.Append("x-window", windowId, new CookieOptions
+        httpContext.Response.Cookies.Append("x-window", windowId.ToString(), new CookieOptions
         {
             HttpOnly = false,
             SameSite = SameSiteMode.Strict,

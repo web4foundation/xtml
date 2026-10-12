@@ -57,7 +57,7 @@ public class WindowBuilder :
                     ? Listeners[index]
                     : default,
                     
-            // Otherwise, it starts with "key" and is bound to some element burried somewhere in the HTML.
+            // Otherwise, it starts with "key" and is bound to some element buried somewhere in the HTML.
             // The only way to find it is to compose the HTML and compare every keyhole to the supplied key.
             _ => FindKeyComposer.Shared.FindEventListener(key, Template),
         };

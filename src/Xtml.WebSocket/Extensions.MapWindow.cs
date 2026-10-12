@@ -157,10 +157,11 @@ public static partial class Extensions
             });
         }
         
-        if (!Guid.TryParse(request.Headers["x-window"], out Guid windowId))
-            windowId = Guid.NewGuid();
+        string? strWindowId = request.Headers["x-window"];
+        if (!Guid.TryParse(strWindowId, out Guid windowId))
+            strWindowId = (windowId = Guid.NewGuid()).ToString();
         // Always set a 1s cookie for x-window.  This is how the websocket identifies itself.
-        httpContext.Response.Cookies.Append("x-window", windowId.ToString(), new CookieOptions
+        httpContext.Response.Cookies.Append("x-window", strWindowId, new CookieOptions
         {
             HttpOnly = false,
             SameSite = SameSiteMode.Strict,

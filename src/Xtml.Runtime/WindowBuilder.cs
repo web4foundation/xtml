@@ -1,10 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using Xtml.Dom.EventListeners;
-using Xtml.Runtime.Composers;
 using Xtml.Dom;
-using Xtml.Templating;
-using Xtml.Runtime.Utilities;
 
 namespace Xtml.Runtime;
 
@@ -26,13 +23,11 @@ public class WindowBuilder :
     ITouchEventListeners,
     ITransitionEventListeners
 {
-    public Func<Html> Template { get; init; }
     public DocumentBuilder Document { get; init; }
     public List<EventListener> Listeners { get; } = [];
 
-    public WindowBuilder(Func<Html> template)
+    public WindowBuilder()
     {
-        Template = template;
         Document = new(this);
     }
 
@@ -42,25 +37,6 @@ public class WindowBuilder :
     {
         // TODO: Implement
         return this;
-    }
-
-    public EventListener GetEventListener(ReadOnlySpan<byte> key)
-    {
-        using var perf = Perf.Measure("GetEventListener"); // TODO: Remove PerfCheck
-
-        return key switch
-        {
-            // If the key starts with "win:" or "doc:" that means it's a top-level window or document event.
-            // These live in a simple List<> and can be looked up by index.
-            _ when key.StartsWith("win:"u8) || key.StartsWith("doc:"u8) =>
-                int.TryParse(key[4..], out var index) && index < Listeners.Count
-                    ? Listeners[index]
-                    : default,
-                    
-            // Otherwise, it starts with "key" and is bound to some element buried somewhere in the HTML.
-            // The only way to find it is to compose the HTML and compare every keyhole to the supplied key.
-            _ => FindKeyComposer.Shared.FindEventListener(key, Template),
-        };
     }
 
     public Action<Event>? OnAfterPrint { set => AddEventListener(nameof(OnAfterPrint), value, null); }

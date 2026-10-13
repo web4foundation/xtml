@@ -28,9 +28,10 @@ public static partial class Extensions
         [StringSyntax("Route")] string pattern,
         Func<Html> template)
     {
-        var applicationBuilder = app.UseWebSockets();
-        var windowBuilder = new WindowBuilder(template);
+        var windowBuilder = new WindowBuilder();
+        var listeners = windowBuilder.Listeners;
         var group = app.MapGroup(pattern);
+        var appBuilder = app.UseWebSockets();
 
         group.Map("/", async httpContext =>
         {
@@ -45,8 +46,8 @@ public static partial class Extensions
             var (clientId, windowId) = GetOrCreateIds(httpContext);
 
             var pipeWriter = httpContext.Response.BodyWriter;
-            var composer = HtmlKeyComposer.Reuse(pipeWriter, windowBuilder);
-            await httpContext.WriteAsync(composer, windowBuilder.Template);
+            var composer = HtmlKeyComposer.Reuse(pipeWriter, listeners);
+            await httpContext.WriteAsync(composer, template);
         });
 
         group.Map("/ui.ws", async httpContext =>
@@ -64,16 +65,17 @@ public static partial class Extensions
                 var logger = app.Services.GetRequiredService<ILogger<Bridge>>();
                 await Bridge.Bind(
                     httpContext,
-                    windowBuilder,
+                    template,
+                    listeners,
                     logger,
                     app.Lifetime.ApplicationStopping
                 );
             }
         });
 
-        if (!applicationBuilder.Properties.TryGetValue("IS_XTML_MAPPED", out _))
+        if (!appBuilder.Properties.TryGetValue("IS_XTML_MAPPED", out _))
         {
-            applicationBuilder.Properties["IS_XTML_MAPPED"] = true;
+            appBuilder.Properties["IS_XTML_MAPPED"] = true;
 
             app.Map("/_app/websocket/ui.js", (HttpContext context) => {
                 context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";

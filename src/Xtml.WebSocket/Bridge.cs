@@ -12,10 +12,11 @@ using Xtml.WebSocket.Buffers;
 using Xtml.Runtime;
 using Xtml.WebSocket.Dom;
 using Xtml.Runtime.Utilities;
+using Xtml.Templating;
 
 namespace Xtml.WebSocket;
 
-public partial class Bridge(HttpContext httpContext, WindowBuilder windowBuilder, ILogger logger)
+public partial class Bridge(HttpContext httpContext, Func<Html> template, List<EventListener> listeners, ILogger logger)
 {
     private static readonly ConcurrentDictionary<string, Bridge> _windows = [];
     public static SnapshotStrategy SnapshotStrategy { get; set; } = SnapshotStrategy.Retain;
@@ -27,7 +28,7 @@ public partial class Bridge(HttpContext httpContext, WindowBuilder windowBuilder
     private TimeSpan _diffInterval = TimeSpan.FromMilliseconds(1000d / 60d); // 60fps
     private readonly Channel<int> _diffChannel = CreateDiffChannel();
     private readonly Channel<ReadOnlySequence<byte>> _outputChannel = CreateOutputChannel();
-    private JsonRpcWriter JsonRpc => JsonRpcWriter.Current(_outputChannel.Writer, windowBuilder);
+    private JsonRpcWriter JsonRpc => JsonRpcWriter.Current(_outputChannel.Writer, listeners);
 
     #if DEBUG
     static Bridge()
@@ -48,11 +49,12 @@ public partial class Bridge(HttpContext httpContext, WindowBuilder windowBuilder
 
     public static async Task Bind(
         HttpContext http,
-        WindowBuilder windowBuilder,
+        Func<Html> template,
+        List<EventListener> listeners,
         ILogger logger,
         CancellationToken cancelProcess)
     {
-        var bridge = new Bridge(http, windowBuilder, logger);
+        var bridge = new Bridge(http, template, listeners, logger);
         if (SnapshotStrategy == SnapshotStrategy.Retain)
             bridge._snapshot ??= bridge.CaptureSnapshot();
 
@@ -290,7 +292,7 @@ public partial class Bridge(HttpContext httpContext, WindowBuilder windowBuilder
 
     private void DispatchEvent(ReadOnlySequence<byte> sequence, ReadOnlySequence<byte> eventSequence, ReadOnlySpan<byte> key)
     {
-        var eventListener = windowBuilder.GetEventListener(key);
+        var eventListener = GetEventListener(key);
 
         if (eventListener.Action is Action listener)
         {
@@ -339,6 +341,25 @@ public partial class Bridge(HttpContext httpContext, WindowBuilder windowBuilder
         }
     }
 
+    private EventListener GetEventListener(ReadOnlySpan<byte> key)
+    {
+        using var perf = Perf.Measure("GetEventListener"); // TODO: Remove PerfCheck
+
+        return key switch
+        {
+            // If the key starts with "win:" or "doc:" that means it's a top-level window or document event.
+            // These live in a simple List<> and can be looked up by index.
+            _ when key.StartsWith("win:"u8) || key.StartsWith("doc:"u8) =>
+                int.TryParse(key[4..], out var index) && index < listeners.Count
+                    ? listeners[index]
+                    : default,
+                    
+            // Otherwise, it starts with "key" and is bound to some element buried somewhere in the HTML.
+            // The only way to find it is to compose the HTML and compare every keyhole to the supplied key.
+            _ => FindKeyComposer.Shared.FindEventListener(key, template),
+        };
+    }
+
     private static async Task Disconnect(System.Net.WebSockets.WebSocket webSocket)
     {
         await webSocket.CloseAsync(
@@ -357,7 +378,7 @@ public partial class Bridge(HttpContext httpContext, WindowBuilder windowBuilder
     {
         using var perf = Perf.Measure("CaptureSnapshot"); // TODO: Remove PerfCheck
 
-        return SnapshotKeyComposer.Shared.Capture(windowBuilder.Template);
+        return SnapshotKeyComposer.Shared.Capture(template);
     }
 
     public void Invalidate()

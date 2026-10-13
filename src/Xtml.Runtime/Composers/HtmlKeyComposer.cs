@@ -7,14 +7,14 @@ using Xtml.Runtime.Utilities;
 
 namespace Xtml.Runtime.Composers;
 
-public class HtmlKeyComposer(IBufferWriter<byte> writer, WindowBuilder window)
+public class HtmlKeyComposer(IBufferWriter<byte> writer, List<EventListener> listeners)
     : BaseKeyComposer, IStreamingComposer
 {
     private ReadOnlyMemory<char>? _deferredLiteral = null;
     private bool _isHeadOmitted = false;
 
     public IBufferWriter<byte> Writer { get; set; } = writer;
-    public WindowBuilder Window { get; set; } = window;
+    public List<EventListener> Listeners = listeners;
 
     public override bool OnTemplateBegin(ref Html html, ref string markup)
     {
@@ -352,11 +352,11 @@ public class HtmlKeyComposer(IBufferWriter<byte> writer, WindowBuilder window)
         """u8);
 
         // Write event handlers set on window or document
-        if (Window.Listeners.Count > 0)
+        if (Listeners.Count > 0)
         {
             Writer.Write("\n\n<script>\n"u8);
 
-            foreach (var listener in Window.Listeners)
+            foreach (var listener in Listeners)
             {
                 // ex: `  {listener.Html}\n`
                 Writer.Write("  "u8);
@@ -410,20 +410,20 @@ public class HtmlKeyComposer(IBufferWriter<byte> writer, WindowBuilder window)
     public override void Reset()
     {
         Writer = null!;
-        Window = null!;
+        Listeners = null!;
         base.Reset();
     }
 
     [ThreadStatic] static HtmlKeyComposer? reusable;
-    public static HtmlKeyComposer Reuse(IBufferWriter<byte> writer, WindowBuilder window) 
+    public static HtmlKeyComposer Reuse(IBufferWriter<byte> writer, List<EventListener> listeners) 
     {
         if (reusable is {} composer)
         {
             composer.Writer = writer;
-            composer.Window = window;
+            composer.Listeners = listeners;
             return composer;
         }
 
-        return reusable = new HtmlKeyComposer(writer, window);
+        return reusable = new HtmlKeyComposer(writer, listeners);
     }
 }

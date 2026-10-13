@@ -19,7 +19,7 @@ public partial class JsonRpcWriter : IDisposable
     private ChannelWriter<ReadOnlySequence<byte>>? _flusher = null;
     private FlushOnAwait? _flushOnAwait;
     private bool _isBatch = false;
-    private WindowBuilder? _windowBuilder;
+    private List<EventListener>? _listeners;
 
     private JsonRpcWriter()
     {
@@ -27,11 +27,11 @@ public partial class JsonRpcWriter : IDisposable
         _jsonWriter = new(_bufferWriter, options);
     }
 
-    public static JsonRpcWriter Current(ChannelWriter<ReadOnlySequence<byte>> flusher, WindowBuilder? windowBuilder = null)
+    public static JsonRpcWriter Current(ChannelWriter<ReadOnlySequence<byte>> flusher, List<EventListener>? listeners = null)
     {
         var writer = _threadStaticWriter ??= new();
         writer._flusher = flusher;
-        writer._windowBuilder = windowBuilder;
+        writer._listeners = listeners;
 
         if (SynchronizationContext.Current is FlushOnAwait)
             writer._isBatch = true;
@@ -729,11 +729,11 @@ public partial class JsonRpcWriter : IDisposable
         """, false);
 
         // Write event handlers set on window or document
-        if (_windowBuilder?.Listeners.Count > 0)
+        if (_listeners?.Count > 0)
         {
             _jsonWriter.WriteStringValueSegment("\n\n<script>\n", false);
 
-            foreach (var listener in _windowBuilder.Listeners)
+            foreach (var listener in _listeners)
                 _jsonWriter.WriteStringValueSegment($"  {listener.Html ?? ""}\n", false);
 
             _jsonWriter.WriteStringValueSegment("</script>\n\n", false);

@@ -17,11 +17,11 @@ BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 public class Tests
 {
     static readonly Pipe pipe = new();
-    static readonly WindowBuilder window = new(() => $"");
+    static readonly WindowBuilder window = new();
     static readonly NoOpComposer noOpComposer = new();
     static readonly NoOpWriter noOpWriter = new();
     static readonly HtmlComposer htmlComposer = new(noOpWriter);
-    static readonly HtmlKeyComposer xtmlComposer = new(noOpWriter, window);
+    static readonly HtmlKeyComposer xtmlComposer = new(noOpWriter, []);
     static readonly Keyhole[] keyholeBuffer = ArrayPool<Keyhole>.Shared.Rent(2048);
     static readonly SnapshotKeyComposer snapshotComposer = new();
     static readonly FindKeyComposer findKeyholeComposer = new();
@@ -104,7 +104,7 @@ public class Tests
     public void Basic_Xtml()
     {
         xtmlComposer.Writer = noOpWriter;
-        xtmlComposer.Window = window;
+        xtmlComposer.Listeners = [];
         noOpWriter.Write(xtmlComposer, $"""
             <html>
                 <head>
@@ -123,7 +123,7 @@ public class Tests
     public async Task Basic_Xtml_PipeWriter()
     {
         xtmlComposer.Writer = pipe.Writer;
-        xtmlComposer.Window = window;
+        xtmlComposer.Listeners = [];
         pipe.Writer.Write(xtmlComposer, $"""
             <html>
                 <head>
@@ -281,7 +281,7 @@ public class Tests
     public void Spiral_Xtml()
     {
         xtmlComposer.Writer = noOpWriter;
-        xtmlComposer.Window = window;
+        xtmlComposer.Listeners = [];
         noOpWriter.Write(xtmlComposer, $$"""
             <!DOCTYPE html>
             <html>
@@ -416,7 +416,7 @@ public class Tests
     public void GuidTable_Xtml()
     {
         xtmlComposer.Writer = noOpWriter;
-        xtmlComposer.Window = window;
+        xtmlComposer.Listeners = [];
         noOpWriter.Write(xtmlComposer, $"""
             <!doctype html>
             <html lang="en">

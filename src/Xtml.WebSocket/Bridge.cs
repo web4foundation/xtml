@@ -53,13 +53,13 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
         Func<Html> template,
         List<EventListener> listeners,
         ILogger logger,
-        CancellationToken cancelProcess)
+        CancellationToken shutdown)
     {
         var bridge = new Bridge(template, listeners, logger);
         if (SnapshotStrategy == SnapshotStrategy.Retain)
             bridge._snapshot ??= bridge.CaptureSnapshot();
 
-        using var reg = cancelProcess.Register(async () => await Disconnect(webSocket));
+        using var reg = shutdown.Register(async () => await Disconnect(webSocket));
 
         _windows[windowId] = bridge;
 

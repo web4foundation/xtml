@@ -121,12 +121,10 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
             }
             catch (OperationCanceledException ex)
             {
-                System.Console.WriteLine($"OutputToWebSocket: OperationCanceledException: {ex.Message}");
                 logger.LogInformation("HTTP request was aborted: {Message}", ex.Message);
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"OutputToWebSocket: Exception: {ex.Message}");
                 logger.LogError(ex, "Unexpected error writing to the WebSocket: {Message}", ex.Message);
             }
         }
@@ -147,7 +145,6 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    System.Console.WriteLine($"WebSocketToMethod: WebSocketMessageType.Close");
                     ArrayPool<byte>.Shared.Return(buffer);
                     break;
                 }
@@ -169,22 +166,18 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
                     sequence = new ReadOnlySequence<byte>(segmentStart, 0, segmentEnd, result.Count);
                 }
             }
-            catch (WebSocketException ex)
+            catch (WebSocketException)
             {
-                System.Console.WriteLine($"WebSocketToMethod: WebSocketException: {ex.Message}");
                 break;
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"WebSocketToMethod: Exception: {ex.Message}");
                 break;
             }
 
             if (HandleJsonRpcMessage(sequence) is ReadOnlySequence<byte> toReturn)
                 toReturn.ReturnToPool();
         }
-
-        System.Console.WriteLine($"WebSocketToMethod: eom");
     }
 
     private async Task DebounceDiffs(CancellationToken cancel = default)
@@ -212,8 +205,6 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
             _ = await _diffChannel.Reader.ReadAsync(cancel);
             Reconcile();
         }
-
-        System.Console.WriteLine($"DebounceDiffs: eom");
     }
 
     private ReadOnlySequence<byte>? HandleJsonRpcMessage(ReadOnlySequence<byte> sequence)

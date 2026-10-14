@@ -16,7 +16,7 @@ using Xtml.Templating;
 
 namespace Xtml.WebSocket;
 
-public partial class Bridge(HttpContext httpContext, Func<Html> template, List<EventListener> listeners, ILogger logger)
+public partial class Bridge(Func<Html> template, List<EventListener> listeners, ILogger logger)
 {
     private static readonly ConcurrentDictionary<Guid, Bridge> _windows = [];
     public static SnapshotStrategy SnapshotStrategy { get; set; } = SnapshotStrategy.Retain;
@@ -48,32 +48,25 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
     #endif
 
     public static async Task Bind(
+        System.Net.WebSockets.WebSocket webSocket,
         Guid windowId,
-        HttpContext http,
         Func<Html> template,
         List<EventListener> listeners,
         ILogger logger,
         CancellationToken cancelProcess)
     {
-        var bridge = new Bridge(http, template, listeners, logger);
+        var bridge = new Bridge(template, listeners, logger);
         if (SnapshotStrategy == SnapshotStrategy.Retain)
             bridge._snapshot ??= bridge.CaptureSnapshot();
 
-        // TODO: Move to config
-        var context = new WebSocketAcceptContext
-        {
-            KeepAliveInterval = TimeSpan.FromSeconds(60),
-            KeepAliveTimeout = TimeSpan.FromSeconds(20)
-        };
-        using var webSocket = await http.WebSockets.AcceptWebSocketAsync(context);
         using var reg = cancelProcess.Register(async () => await Disconnect(webSocket));
 
         _windows[windowId] = bridge;
 
         await Task.WhenAny(
-            bridge.OutputToWebSocket(webSocket, http.RequestAborted),
-            bridge.WebSocketToMethod(webSocket, http.RequestAborted),
-            bridge.DebounceDiffs(http.RequestAborted)
+            bridge.OutputToWebSocket(webSocket, CancellationToken.None),
+            bridge.WebSocketToMethod(webSocket, CancellationToken.None),
+            bridge.DebounceDiffs(CancellationToken.None)
         );
 
         logger.LogInformation("👋 Goodbye, {WindowId}!", windowId);
@@ -105,7 +98,7 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
         }
     );
 
-    private async Task OutputToWebSocket(System.Net.WebSockets.WebSocket webSocket, CancellationToken cancel)
+    private async Task OutputToWebSocket(System.Net.WebSockets.WebSocket webSocket, CancellationToken cancel = default)
     {
         while (!cancel.IsCancellationRequested && webSocket.State == WebSocketState.Open)
         {
@@ -128,16 +121,18 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
             }
             catch (OperationCanceledException ex)
             {
+                System.Console.WriteLine($"OutputToWebSocket: OperationCanceledException: {ex.Message}");
                 logger.LogInformation("HTTP request was aborted: {Message}", ex.Message);
             }
             catch (Exception ex)
             {
+                System.Console.WriteLine($"OutputToWebSocket: Exception: {ex.Message}");
                 logger.LogError(ex, "Unexpected error writing to the WebSocket: {Message}", ex.Message);
             }
         }
     }
 
-    private async Task WebSocketToMethod(System.Net.WebSockets.WebSocket webSocket, CancellationToken cancel)
+    private async Task WebSocketToMethod(System.Net.WebSockets.WebSocket webSocket, CancellationToken cancel = default)
     {
         const int RECEIVE_BUFFER_LENGTH = 4096;
         ReadOnlySequence<byte> sequence;
@@ -152,6 +147,7 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
+                    System.Console.WriteLine($"WebSocketToMethod: WebSocketMessageType.Close");
                     ArrayPool<byte>.Shared.Return(buffer);
                     break;
                 }
@@ -173,17 +169,25 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
                     sequence = new ReadOnlySequence<byte>(segmentStart, 0, segmentEnd, result.Count);
                 }
             }
-            catch (WebSocketException)
+            catch (WebSocketException ex)
             {
+                System.Console.WriteLine($"WebSocketToMethod: WebSocketException: {ex.Message}");
+                break;
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"WebSocketToMethod: Exception: {ex.Message}");
                 break;
             }
 
             if (HandleJsonRpcMessage(sequence) is ReadOnlySequence<byte> toReturn)
                 toReturn.ReturnToPool();
         }
+
+        System.Console.WriteLine($"WebSocketToMethod: eom");
     }
 
-    private async Task DebounceDiffs(CancellationToken cancel)
+    private async Task DebounceDiffs(CancellationToken cancel = default)
     {
         // TODO: I don't like how it awaits Task.Delay on the first run.
 
@@ -208,6 +212,8 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
             _ = await _diffChannel.Reader.ReadAsync(cancel);
             Reconcile();
         }
+
+        System.Console.WriteLine($"DebounceDiffs: eom");
     }
 
     private ReadOnlySequence<byte>? HandleJsonRpcMessage(ReadOnlySequence<byte> sequence)

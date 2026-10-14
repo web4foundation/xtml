@@ -16,6 +16,13 @@ namespace Xtml.WebSocket;
 
 public static partial class Extensions
 {
+    // TODO: Move to config
+    static readonly WebSocketAcceptContext acceptContext = new()
+    {
+        KeepAliveInterval = TimeSpan.FromSeconds(60),
+        KeepAliveTimeout = TimeSpan.FromSeconds(20)
+    };
+
     public static void MapUI(
         this WebApplication app,
         [StringSyntax("Route")] string pattern,
@@ -32,6 +39,7 @@ public static partial class Extensions
 
         var group = app.MapGroup(pattern);
         var logger = app.Services.GetRequiredService<ILogger<Bridge>>();
+        var shutdown = app.Lifetime.ApplicationStopping;
 
         group.Map("/", async httpContext => {
             var (clientId, windowId) = GetOrCreateIds(httpContext);
@@ -49,7 +57,8 @@ public static partial class Extensions
             {
                 var (clientId, windowId) = GetIds(httpContext);
                 var state = WindowCache<T>.Get(windowId);
-                await Bridge.Bind(windowId, httpContext, state.Render, listeners: [], logger, app.Lifetime.ApplicationStopping);
+                using var webSocket = await httpContext.WebSockets.AcceptWebSocketAsync(acceptContext);
+                await Bridge.Bind(webSocket, windowId, state.Render, listeners: [], logger, shutdown);
             }
         });
     }
@@ -71,6 +80,7 @@ public static partial class Extensions
 
         var group = app.MapGroup(pattern);
         var logger = app.Services.GetRequiredService<ILogger<Bridge>>();
+        var shutdown = app.Lifetime.ApplicationStopping;
 
         var windowBuilder = new WindowBuilder();
         var listeners = windowBuilder.Listeners;
@@ -85,7 +95,10 @@ public static partial class Extensions
 
         group.Map("/ui.ws", async httpContext => {
             if (httpContext.WebSockets.IsWebSocketRequest)
-                await Bridge.Bind(Guid.NewGuid(), httpContext, template, listeners, logger, app.Lifetime.ApplicationStopping);
+            {
+                using var webSocket = await httpContext.WebSockets.AcceptWebSocketAsync(acceptContext);
+                await Bridge.Bind(webSocket, Guid.NewGuid(), template, listeners, logger, shutdown);
+            }
         });
 
         return windowBuilder;

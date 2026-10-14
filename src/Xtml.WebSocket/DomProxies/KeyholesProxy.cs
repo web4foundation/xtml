@@ -199,14 +199,9 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation(
-                "Request starting {Protocol} {Method} {Scheme}://{Host}{PathBase}{Path}{QueryString} - {ContentType} {ContentLength}",
+                "Request starting {Protocol} {Method} - {ContentType} {ContentLength}",
                 "JSON-RPC/2.0",
                 method,
-                httpContext.Request.Scheme == "https" ? "wss" : "ws",
-                httpContext.Request.Host,
-                httpContext.Request.PathBase,
-                httpContext.Request.Path,
-                httpContext.Request.QueryString,
                 "application/json",
                 ""
             );
@@ -224,14 +219,9 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation(
-                "Request finished {Protocol} {Method} {Scheme}://{Host}{PathBase}{Path}{QueryString} - {StatusCode} {ContentLength} {ContentType} {ElapsedMilliseconds}ms",
+                "Request finished {Protocol} {Method} - {StatusCode} {ContentLength} {ContentType} {ElapsedMilliseconds}ms",
                 "JSON-RPC/2.0",
                 method,
-                httpContext.Request.Scheme == "https" ? "wss" : "ws",
-                httpContext.Request.Host,
-                httpContext.Request.PathBase,
-                httpContext.Request.Path,
-                httpContext.Request.QueryString,
                 200,
                 "",
                 "application/json",

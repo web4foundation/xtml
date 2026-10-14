@@ -59,7 +59,7 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
         if (SnapshotStrategy == SnapshotStrategy.Retain)
             bridge._snapshot ??= bridge.CaptureSnapshot();
 
-        using var reg = RegisterDisconnect(webSocket, shutdown);
+        using var _ = RegisterShutdown(webSocket, shutdown);
 
         _windows[windowId] = bridge;
 
@@ -365,7 +365,7 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
         };
     }
 
-    private static CancellationTokenRegistration RegisterDisconnect(
+    private static CancellationTokenRegistration RegisterShutdown(
         System.Net.WebSockets.WebSocket webSocket, 
         CancellationToken shutdown)
     {

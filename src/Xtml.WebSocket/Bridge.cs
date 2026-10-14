@@ -287,14 +287,6 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
         return sequence;
     }
 
-    private static ReadOnlySpan<byte> GetKey(ReadOnlySpan<byte> method)
-    {
-        var split = method.Split((byte)'\'');
-        return split.MoveNext() && split.MoveNext()
-            ? method[split.Current]
-            : [];
-    }
-
     private void DispatchEvent(ReadOnlySequence<byte> sequence, ReadOnlySequence<byte> eventSequence, ReadOnlySpan<byte> key)
     {
         var eventListener = GetEventListener(key);
@@ -344,6 +336,14 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
             sequence.ReturnToPool();
             logger.LogWarning("Event listener not found for key: {Key}.  Possible race condition.", Encoding.UTF8.GetString(key));
         }
+    }
+
+    private static ReadOnlySpan<byte> GetKey(ReadOnlySpan<byte> method)
+    {
+        var split = method.Split((byte)'\'');
+        return split.MoveNext() && split.MoveNext()
+            ? method[split.Current]
+            : [];
     }
 
     private EventListener GetEventListener(ReadOnlySpan<byte> key)

@@ -68,7 +68,7 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
         using var webSocket = await http.WebSockets.AcceptWebSocketAsync(context);
         using var reg = cancelProcess.Register(async () => await Disconnect(webSocket));
 
-        _windows[windowId] = bridge;        
+        _windows[windowId] = bridge;
 
         await Task.WhenAny(
             bridge.OutputToWebSocket(webSocket, http.RequestAborted),

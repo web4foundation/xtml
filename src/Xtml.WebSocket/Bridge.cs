@@ -59,7 +59,7 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
         if (SnapshotStrategy == SnapshotStrategy.Retain)
             bridge._snapshot ??= bridge.CaptureSnapshot();
 
-        using var reg = shutdown.Register(async () => await Disconnect(webSocket));
+        using var reg = shutdown.Register(static async state => await Disconnect(state), webSocket);
 
         _windows[windowId] = bridge;
 
@@ -365,13 +365,14 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
         };
     }
 
-    private static async Task Disconnect(System.Net.WebSockets.WebSocket webSocket)
+    private static async Task Disconnect(object? state)
     {
-        await webSocket.CloseAsync(
-            WebSocketCloseStatus.NormalClosure,
-            "Application ended...",
-            CancellationToken.None
-        );
+        if (state is System.Net.WebSockets.WebSocket webSocket)
+            await webSocket.CloseAsync(
+                WebSocketCloseStatus.NormalClosure,
+                "Application ended...",
+                CancellationToken.None
+            );
     }
 
     public void SetRefreshRate(int milliseconds)

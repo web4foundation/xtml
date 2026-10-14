@@ -170,7 +170,7 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
             {
                 break;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 break;
             }

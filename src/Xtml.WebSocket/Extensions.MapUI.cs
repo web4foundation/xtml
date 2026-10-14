@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Xtml.Runtime;
 using System.Diagnostics;
 using System.IO.Pipelines;
+using Xtml.State;
 using Xtml.Templating;
 using Xtml.Templating.Composers;
 using Xtml.Runtime.Assets;
@@ -15,6 +16,44 @@ namespace Xtml.WebSocket;
 
 public static partial class Extensions
 {
+    public static void MapUI(
+        this WebApplication app,
+        [StringSyntax("Route")] string pattern,
+        [StringSyntax("FilePath")] string assetsPath)
+    {
+    }
+
+    public static void MapUI<T>(
+        this WebApplication app,
+        [StringSyntax("Route")] string pattern)
+            where T : struct, IView
+    {
+        app.UseXtmlWebSockets();
+
+        var group = app.MapGroup(pattern);
+        var logger = app.Services.GetRequiredService<ILogger<Bridge>>();
+
+        group.Map("/", async httpContext => {
+            var (clientId, windowId) = GetOrCreateIds(httpContext);
+            var state = WindowCache<T>.Get(windowId);
+
+            var pipeWriter = httpContext.Response.BodyWriter;
+            var composer = HtmlKeyComposer.Reuse(pipeWriter, listeners: []); // TODO: Get listeners (INativeWebapp?)
+
+            httpContext.SetXtmlHeaders();
+            await httpContext.WriteAsync(composer, state.Render);
+        });
+
+        group.Map("/ui.ws", async httpContext => {
+            if (httpContext.WebSockets.IsWebSocketRequest)
+            {
+                var (clientId, windowId) = GetIds(httpContext);
+                var state = WindowCache<T>.Get(windowId);
+                await Bridge.Bind(windowId, httpContext, state.Render, listeners: [], logger, app.Lifetime.ApplicationStopping);
+            }
+        });
+    }
+
     /// <summary>
     /// Adds a RouteEndpoint for the specified pattern that establishes a 
     /// XTML connection enabling the handling of events and manipulation of the DOM.
@@ -28,78 +67,69 @@ public static partial class Extensions
         [StringSyntax("Route")] string pattern,
         Func<Html> template)
     {
+        app.UseXtmlWebSockets();
+
+        var group = app.MapGroup(pattern);
+        var logger = app.Services.GetRequiredService<ILogger<Bridge>>();
+
         var windowBuilder = new WindowBuilder();
         var listeners = windowBuilder.Listeners;
-        var group = app.MapGroup(pattern);
-        var appBuilder = app.UseWebSockets();
 
-        group.Map("/", async httpContext =>
-        {
-            // TODO: Make ContentSecurityPolicy a part of config?
-            // img-src *;                           No restrictions on image sources
-            // style-src 'self' 'unsafe-inline';    Allows inline and same-origin styles
-            // script-src-elem 'self';              Scripts are same-origin only (<script src="..."> and <script>...</script>)
-            // script-src-attr 'unsafe-inline';     Inline event handlers are allowed (onclick="..." etc)
-            // httpContext.Response.Headers.ContentSecurityPolicy = "img-src *; style-src 'self' 'unsafe-inline'; script-src-elem 'self'; script-src-attr 'unsafe-inline';";
-            httpContext.Response.ContentType = "text/html; charset=utf-8";
-
-            var (clientId, windowId) = GetOrCreateIds(httpContext);
-
+        group.Map("/", async httpContext => {
+            // var (clientId, windowId) = GetOrCreateIds(httpContext);
             var pipeWriter = httpContext.Response.BodyWriter;
             var composer = HtmlKeyComposer.Reuse(pipeWriter, listeners);
+            httpContext.SetXtmlHeaders();
             await httpContext.WriteAsync(composer, template);
         });
 
-        group.Map("/ui.ws", async httpContext =>
-        {
-            var cookies = httpContext.Request.Cookies;
-            if (!Guid.TryParse(cookies["x-client"], out Guid clientId) || 
-                !Guid.TryParse(cookies["x-window"], out Guid windowId))
-            {
-                // TODO: Fix infinite loop here.
-                return;
-            }
-
+        group.Map("/ui.ws", async httpContext => {
             if (httpContext.WebSockets.IsWebSocketRequest)
-            {
-                var logger = app.Services.GetRequiredService<ILogger<Bridge>>();
-                await Bridge.Bind(
-                    httpContext,
-                    template,
-                    listeners,
-                    logger,
-                    app.Lifetime.ApplicationStopping
-                );
-            }
+                await Bridge.Bind(Guid.NewGuid(), httpContext, template, listeners, logger, app.Lifetime.ApplicationStopping);
         });
 
+        return windowBuilder;
+    }
+
+    private static void SetXtmlHeaders(this HttpContext httpContext)
+    {
+        // TODO: Make ContentSecurityPolicy a part of config?
+        // img-src *;                           No restrictions on image sources
+        // style-src 'self' 'unsafe-inline';    Allows inline and same-origin styles
+        // script-src-elem 'self';              Scripts are same-origin only (<script src="..."> and <script>...</script>)
+        // script-src-attr 'unsafe-inline';     Inline event handlers are allowed (onclick="..." etc)
+        // httpContext.Response.Headers.ContentSecurityPolicy = "img-src *; style-src 'self' 'unsafe-inline'; script-src-elem 'self'; script-src-attr 'unsafe-inline';";
+        httpContext.Response.ContentType = "text/html; charset=utf-8";
+    }    
+
+    private static IApplicationBuilder UseXtmlWebSockets(this WebApplication app)
+    {
+        var appBuilder = app.UseWebSockets();
         if (!appBuilder.Properties.TryGetValue("IS_XTML_MAPPED", out _))
         {
             appBuilder.Properties["IS_XTML_MAPPED"] = true;
 
             app.Map("/_app/websocket/ui.js", (HttpContext context) => {
                 context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-                WriteAsset(context, "text/javascript", AssetsHelper.GetJs(context.Request.Headers.AcceptEncoding.ToString()));
+                WriteAsset(context, "text/javascript", AssetsHelper.GetJs(context.Request.Headers.AcceptEncoding));
             });
 
             app.Map("/_app/base/ui.css", (HttpContext context) => {
                 context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-                WriteAsset(context, "text/css", AssetsHelper.GetCss(context.Request.Headers.AcceptEncoding.ToString()));
+                WriteAsset(context, "text/css", AssetsHelper.GetCss(context.Request.Headers.AcceptEncoding));
             });
 
             app.Map("/_app/websocket/sw.js", (HttpContext context) => {
                 context.Response.Headers["Service-Worker-Allowed"] = "/";
-                WriteAsset(context, "text/javascript", AssetsHelper.GetSw(context.Request.Headers.AcceptEncoding.ToString()));
+                WriteAsset(context, "text/javascript", AssetsHelper.GetSw(context.Request.Headers.AcceptEncoding));
             });
 
-            app.Map("/_app/alive", async httpContext =>
-            {
+            app.Map("/_app/alive", async httpContext => {
                 if (httpContext.WebSockets.IsWebSocketRequest)
                     await httpContext.WebSockets.AcceptWebSocketAsync();
             });
         }
-
-        return windowBuilder;
+        return appBuilder;
     }
 
     private static void WriteAsset(HttpContext context, string contentType, (byte[] Body, string? ContentEncoding) asset)
@@ -142,6 +172,18 @@ public static partial class Extensions
 
             return pipeWriter.FlushAsync(httpContext.RequestAborted);
         }
+    }
+
+    private static (Guid clientId, Guid windowId) GetIds(HttpContext httpContext)
+    {
+        var cookies = httpContext.Request.Cookies;
+        if (!Guid.TryParse(cookies["x-client"], out Guid clientId) ||
+            !Guid.TryParse(cookies["x-window"], out Guid windowId))
+        {
+            // TODO: Fix infinite loop here.
+            throw new NotImplementedException("Fix infinite loop here");
+        }
+        return (clientId, windowId); 
     }
 
     private static (Guid, Guid) GetOrCreateIds(HttpContext httpContext)

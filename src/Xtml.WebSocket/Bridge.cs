@@ -18,7 +18,7 @@ namespace Xtml.WebSocket;
 
 public partial class Bridge(HttpContext httpContext, Func<Html> template, List<EventListener> listeners, ILogger logger)
 {
-    private static readonly ConcurrentDictionary<string, Bridge> _windows = [];
+    private static readonly ConcurrentDictionary<Guid, Bridge> _windows = [];
     public static SnapshotStrategy SnapshotStrategy { get; set; } = SnapshotStrategy.Retain;
 
     private Keyhole[]? _snapshot = null;
@@ -48,6 +48,7 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
     #endif
 
     public static async Task Bind(
+        Guid windowId,
         HttpContext http,
         Func<Html> template,
         List<EventListener> listeners,
@@ -67,9 +68,7 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
         using var webSocket = await http.WebSockets.AcceptWebSocketAsync(context);
         using var reg = cancelProcess.Register(async () => await Disconnect(webSocket));
 
-        // TODO: Move to header approach?
-        var windowID = http.Connection.Id;
-        _windows[windowID] = bridge;        
+        _windows[windowId] = bridge;        
 
         await Task.WhenAny(
             bridge.OutputToWebSocket(webSocket, http.RequestAborted),
@@ -77,9 +76,9 @@ public partial class Bridge(HttpContext httpContext, Func<Html> template, List<E
             bridge.DebounceDiffs(http.RequestAborted)
         );
 
-        logger.LogInformation("👋 Goodbye, {WindowID}!", windowID);
+        logger.LogInformation("👋 Goodbye, {WindowId}!", windowId);
 
-        _windows.Remove(windowID, out var _);
+        _windows.Remove(windowId, out var _);
     }
 
     private static Channel<int> CreateDiffChannel() => Channel.CreateBounded<int>(new BoundedChannelOptions(1)

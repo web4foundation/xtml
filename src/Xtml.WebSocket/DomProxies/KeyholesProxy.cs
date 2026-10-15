@@ -96,7 +96,7 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
+            _logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
         finally
@@ -116,7 +116,7 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
+            _logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
         finally
@@ -136,7 +136,7 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
+            _logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
         finally
@@ -156,7 +156,7 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
+            _logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
         finally
@@ -196,9 +196,9 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
     {
         // TODO: Temporary until a proper IHttpApplication is ready to be built and include proper diagnostics.
 
-        if (logger.IsEnabled(LogLevel.Information))
+        if (_logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation(
+            _logger.LogInformation(
                 "Request starting {Protocol} {Method} - {ContentType} {ContentLength}",
                 "JSON-RPC/2.0",
                 method,
@@ -216,9 +216,9 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
     {
         // TODO: Temporary until a proper IHttpApplication is ready to be built and include proper diagnostics.
 
-        if (logger.IsEnabled(LogLevel.Information))
+        if (_logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation(
+            _logger.LogInformation(
                 "Request finished {Protocol} {Method} - {StatusCode} {ContentLength} {ContentType} {ElapsedMilliseconds}ms",
                 "JSON-RPC/2.0",
                 method,

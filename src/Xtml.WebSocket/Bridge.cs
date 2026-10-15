@@ -16,7 +16,7 @@ using Xtml.Templating;
 
 namespace Xtml.WebSocket;
 
-public partial class Bridge(Func<Html> template, List<EventListener> listeners, ILogger logger)
+public partial class Bridge
 {
     private static readonly ConcurrentDictionary<Guid, Bridge> _windows = [];
     public static SnapshotStrategy SnapshotStrategy { get; set; } = SnapshotStrategy.Retain;
@@ -29,6 +29,15 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
     private readonly Channel<int> _diffChannel = CreateDiffChannel();
     private readonly Channel<ReadOnlySequence<byte>> _outputChannel = CreateOutputChannel();
     private JsonRpcWriter JsonRpc => JsonRpcWriter.Current(_outputChannel.Writer, listeners);
+    private Func<Html> _template;
+    private List<EventListener> _listeners;
+    private ILogger _logger;
+    public Bridge(Func<Html> template, List<EventListener> listeners, ILogger logger)
+    {
+        _template = template;
+        _listeners = listeners;
+        _logger = logger;
+    }
 
     #if DEBUG
     static Bridge()
@@ -121,11 +130,11 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
             }
             catch (OperationCanceledException ex)
             {
-                logger.LogInformation("HTTP request was aborted: {Message}", ex.Message);
+                _logger.LogInformation("HTTP request was aborted: {Message}", ex.Message);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unexpected error writing to the WebSocket: {Message}", ex.Message);
+                _logger.LogError(ex, "Unexpected error writing to the WebSocket: {Message}", ex.Message);
             }
         }
     }
@@ -261,13 +270,13 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
                     }
 
                 default:
-                    logger.LogError("Unrecognized method: {Method}.  This should be impossible and needs fixing.", Encoding.UTF8.GetString(rpc.Method));
+                    _logger.LogError("Unrecognized method: {Method}.  This should be impossible and needs fixing.", Encoding.UTF8.GetString(rpc.Method));
                     break;
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error handling JsonRpc message: {Message}", ex.Message);
+            _logger.LogError(ex, "Unexpected error handling JsonRpc message: {Message}", ex.Message);
         }
         finally
         {
@@ -325,7 +334,7 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
         else
         {
             sequence.ReturnToPool();
-            logger.LogWarning("Event listener not found for key: {Key}.  Possible race condition.", Encoding.UTF8.GetString(key));
+            _logger.LogWarning("Event listener not found for key: {Key}.  Possible race condition.", Encoding.UTF8.GetString(key));
         }
     }
 
@@ -346,13 +355,13 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
             // If the key starts with "win:" or "doc:" that means it's a top-level window or document event.
             // These live in a simple List<> and can be looked up by index.
             _ when key.StartsWith("win:"u8) || key.StartsWith("doc:"u8) =>
-                int.TryParse(key[4..], out var index) && index < listeners.Count
-                    ? listeners[index]
+                int.TryParse(key[4..], out var index) && index < _listeners.Count
+                    ? _listeners[index]
                     : default,
                     
             // Otherwise, it starts with "key" and is bound to some element buried somewhere in the HTML.
             // The only way to find it is to compose the HTML and compare every keyhole to the supplied key.
-            _ => FindKeyComposer.Shared.FindEventListener(key, template),
+            _ => FindKeyComposer.Shared.FindEventListener(key, _template),
         };
     }
 
@@ -380,7 +389,7 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
     {
         using var perf = Perf.Measure("CaptureSnapshot"); // TODO: Remove PerfCheck
 
-        return SnapshotKeyComposer.Shared.Capture(template);
+        return SnapshotKeyComposer.Shared.Capture(_template);
     }
 
     public void Invalidate()
@@ -407,13 +416,13 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
     {
         if (!_isInvalidated)
         {
-            logger.LogWarning("Cancelling Reconcile() because IsInvalidated is false (which is unexpected and should be investigated).");
+            _logger.LogWarning("Cancelling Reconcile() because IsInvalidated is false (which is unexpected and should be investigated).");
             return;
         }
 
         if (_snapshot is null)
         {
-            logger.LogWarning("Cancelling Reconcile() because snapshot is null (which is unexpected and should be investigated).");
+            _logger.LogWarning("Cancelling Reconcile() because snapshot is null (which is unexpected and should be investigated).");
             return;
         }
 
@@ -444,7 +453,7 @@ public partial class Bridge(Func<Html> template, List<EventListener> listeners, 
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error reconciling diffs: {Message}", ex.Message);
+            _logger.LogError(ex, "Unexpected error reconciling diffs: {Message}", ex.Message);
         }
 
         _isInvalidated = false;

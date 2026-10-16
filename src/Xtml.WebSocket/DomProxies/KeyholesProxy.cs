@@ -121,9 +121,9 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
         finally
         {
+            LogMessageEnded("dispatchEvent", stopwatch);
             // Return buffer(s) to the pool
             @event.Dispose();
-            LogMessageEnded("dispatchEvent", stopwatch);
         }
     }
 
@@ -161,9 +161,9 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
         finally
         {
+            LogMessageEnded("dispatchEvent", stopwatch);
             // Return buffer(s) to the pool
             @event.Dispose();
-            LogMessageEnded("dispatchEvent", stopwatch);
         }
     }
 

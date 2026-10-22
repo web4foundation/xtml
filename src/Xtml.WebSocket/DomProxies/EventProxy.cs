@@ -24,16 +24,16 @@ public record struct EventProxy : Event, IDisposable
 {
     private static readonly ObjectPool<Dictionary<string, long>> _valueDictionaryPool = ObjectPool.Create<Dictionary<string, long>>();
 
-    private readonly ReadOnlySequence<byte> _rpcMessage;
+    private readonly ReadOnlySequence<byte> _rentedBuffer;
     private readonly ReadOnlySequence<byte> _eventParam;
     private readonly IWindow _window;
     private readonly Propagation _propagation;
     private Dictionary<string, long>? _values = null; // Here, longs are used to encode bools, ints, and doubles.
     private Dictionary<string, object>? _references = null;
 
-    public EventProxy(ReadOnlySequence<byte> rpcMessage, ReadOnlySequence<byte> eventParam, IWindow window, Propagation propagation)
+    public EventProxy(ReadOnlySequence<byte> rentedBuffer, ReadOnlySequence<byte> eventParam, IWindow window, Propagation propagation)
     {
-        _rpcMessage = rpcMessage;
+        _rentedBuffer = rentedBuffer;
         _eventParam = eventParam;
         _window = window;
         _propagation = propagation;
@@ -47,7 +47,7 @@ public record struct EventProxy : Event, IDisposable
         _references?.Clear();
         if (_values is not null)
             _valueDictionaryPool.Return(_values);
-        _rpcMessage.ReturnToPool();
+        _rentedBuffer.ReturnToPool();
     }
 
     private void LazyParse(bool canIgnoreRefTypes = false)

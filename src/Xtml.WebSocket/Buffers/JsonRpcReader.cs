@@ -121,7 +121,10 @@ public readonly ref struct JsonRpcReader
 
         public EventProxy GetNextAsEvent(ReadOnlySequence<byte> rentedBuffer, IWindow window, Propagation propagation)
         {
-            return new EventProxy(rentedBuffer, GetNextAsSequence(), window, propagation);
+            var e = new EventProxy(rentedBuffer, GetNextAsSequence(), window, propagation);
+            propagation.CurrentID = GetNextAsInt();
+            propagation.CurrentLevel = GetNextOptionalAsInt() ?? 0;
+            return e;
         }
     }
 }

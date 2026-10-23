@@ -13,8 +13,7 @@ public readonly ref struct JsonRpcReader
     public ReadOnlySpan<byte> Method { get; init; }
     public ReadOnlySpan<byte> Id { get; init; }
     public int? IdAsInt => int.TryParse(Id, out int result) ? result : null;
-    private readonly ReadOnlySequence<byte> paramsSequence;
-    public PositionalParams ReadPositionalParams() => new(paramsSequence);
+    public PositionalParams Params { get; init; }
     public ReadOnlySequence<byte> Result { get; init; }
     public ReadOnlySequence<byte> Error { get; init; }
 
@@ -44,7 +43,7 @@ public readonly ref struct JsonRpcReader
                 else if (reader.ValueTextEquals("params"u8))
                 {
                     reader.Read();
-                    paramsSequence = ReadSequence(sequence, ref reader);
+                    Params = new PositionalParams(ReadSequence(sequence, ref reader));
                 }
                 else if (reader.ValueTextEquals("result"u8))
                 {

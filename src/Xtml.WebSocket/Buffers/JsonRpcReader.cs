@@ -1,7 +1,9 @@
 using System.Buffers;
 using System.Text.Json;
+using Xtml.Dom;
 using Xtml.Runtime;
 using Xtml.Runtime.Utilities;
+using Xtml.WebSocket.Dom;
 
 namespace Xtml.WebSocket.Buffers;
 
@@ -116,6 +118,11 @@ public readonly ref struct JsonRpcReader
             using var perf = Perf.Measure("JsonRpcMessage.GetNextAsSequence"); // TODO: Remove PerfCheck        
             reader.Read();
             return JsonRpcReader.ReadSequence(sequence, ref reader);
+        }
+
+        public EventProxy GetNextAsEvent(ReadOnlySequence<byte> rentedBuffer, IWindow window, Propagation propagation)
+        {
+            return new EventProxy(rentedBuffer, GetNextAsSequence(), window, propagation);
         }
     }
 }

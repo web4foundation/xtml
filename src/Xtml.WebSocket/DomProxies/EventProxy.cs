@@ -20,24 +20,16 @@ namespace Xtml.WebSocket.Dom;
 /// Additionally, if the only properties lazily accessed are value types (e.g. bool, int, long, double)
 /// then this struct will avoid allocating a surplus of memory on the heap by pooling its dictionary.
 /// </summary>
-public record struct EventProxy : Event, IDisposable
+public struct EventProxy(
+    ReadOnlySequence<byte> rentedBuffer, 
+    ReadOnlySequence<byte> eventBuffer, 
+    IWindow window, 
+    Propagation propagation
+) : Event, IDisposable
 {
     private static readonly ObjectPool<Dictionary<string, long>> _valueDictionaryPool = ObjectPool.Create<Dictionary<string, long>>();
-
-    private readonly ReadOnlySequence<byte> _rentedBuffer;
-    private readonly ReadOnlySequence<byte> _eventParam;
-    private readonly IWindow _window;
-    private readonly Propagation _propagation;
     private Dictionary<string, long>? _values = null; // Here, longs are used to encode bools, ints, and doubles.
     private Dictionary<string, object>? _references = null;
-
-    public EventProxy(ReadOnlySequence<byte> rentedBuffer, ReadOnlySequence<byte> eventParam, IWindow window, Propagation propagation)
-    {
-        _rentedBuffer = rentedBuffer;
-        _eventParam = eventParam;
-        _window = window;
-        _propagation = propagation;
-    }
 
     public void Dispose()
     {
@@ -47,7 +39,7 @@ public record struct EventProxy : Event, IDisposable
         _references?.Clear();
         if (_values is not null)
             _valueDictionaryPool.Return(_values);
-        _rentedBuffer.ReturnToPool();
+        rentedBuffer.ReturnToPool();
     }
 
     private void LazyParse(bool canIgnoreRefTypes = false)
@@ -63,7 +55,7 @@ public record struct EventProxy : Event, IDisposable
     {
         try
         {
-            var reader = new Utf8JsonReader(_eventParam);
+            var reader = new Utf8JsonReader(eventBuffer);
             while (reader.Read())
             {
                 if (reader.TokenType == JsonTokenType.PropertyName)
@@ -626,7 +618,7 @@ public record struct EventProxy : Event, IDisposable
     public string? Type => GetReference("type") as string;
     string IEvent.Type => Type ?? string.Empty;
 
-    public IWindow? View => _window;
+    public IWindow? View => window;
     IWindow IViewSubset.View => View!;
 
     public int? Width => GetInt("width");
@@ -638,7 +630,7 @@ public record struct EventProxy : Event, IDisposable
     public double? Y => GetDouble("y");
     double IXYSubset.Y => Y ?? default;
 
-    public void StopPropagation() => _propagation.Stop();
+    public void StopPropagation() => propagation.Stop();
 
-    public void StopImmediatePropagation() => _propagation.StopImmediate();
+    public void StopImmediatePropagation() => propagation.StopImmediate();
 }

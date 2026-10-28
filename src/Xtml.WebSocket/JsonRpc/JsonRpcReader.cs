@@ -1,11 +1,10 @@
 using System.Buffers;
 using System.Text.Json;
 using Xtml.Dom;
-using Xtml.Runtime;
 using Xtml.Runtime.Utilities;
 using Xtml.WebSocket.Dom;
 
-namespace Xtml.WebSocket.Buffers;
+namespace Xtml.WebSocket.JsonRpc;
 
 public readonly ref struct JsonRpcReader
 {

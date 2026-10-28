@@ -4,15 +4,13 @@ using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Channels;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Xtml.Runtime.Composers;
-using Xtml.Dom;
 using Xtml.WebSocket.Buffers;
 using Xtml.Runtime;
-using Xtml.WebSocket.Dom;
 using Xtml.Runtime.Utilities;
 using Xtml.Templating;
+using Xtml.WebSocket.JsonRpc;
 
 namespace Xtml.WebSocket;
 

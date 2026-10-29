@@ -414,16 +414,16 @@ public class HtmlKeyComposer(IBufferWriter<byte> writer, List<EventListener> lis
         base.Reset();
     }
 
-    [ThreadStatic] static HtmlKeyComposer? reusable;
+    [ThreadStatic] static HtmlKeyComposer? t_reusable;
     public static HtmlKeyComposer Reuse(IBufferWriter<byte> writer, List<EventListener> listeners) 
     {
-        if (reusable is {} composer)
+        if (t_reusable is {} composer)
         {
             composer.Writer = writer;
             composer.Listeners = listeners;
             return composer;
         }
 
-        return reusable = new HtmlKeyComposer(writer, listeners);
+        return t_reusable = new HtmlKeyComposer(writer, listeners);
     }
 }

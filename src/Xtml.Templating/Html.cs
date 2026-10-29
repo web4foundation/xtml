@@ -12,7 +12,7 @@ public enum HtmlType { Wrapper, Template, Node, Raw, Attribute }
 [StructLayout(LayoutKind.Auto)]
 public ref partial struct Html : IDisposable
 {
-    [ThreadStatic] static BaseComposer? _scopedComposer;
+    [ThreadStatic] static BaseComposer? t_scopedComposer;
     private readonly BaseComposer _composer;
 
     public int FormattedCount { get; private set; }
@@ -28,7 +28,7 @@ public ref partial struct Html : IDisposable
     public Html(int literalLength, int formattedCount, BaseComposer composer)
         : this(composer, literalLength, formattedCount)
     {
-        _scopedComposer = composer;
+        t_scopedComposer = composer;
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public ref partial struct Html : IDisposable
     /// It's relies on ThreadStatic to find its composer (which was established by the root Html).
     /// </summary>
     public Html(int literalLength, int formattedCount, [CallerLineNumber] int relativeOrder = 0)
-        : this(_scopedComposer ?? throw new NotSupportedException($"This thread's root Html must provide its own composer."), literalLength, formattedCount)
+        : this(t_scopedComposer ?? throw new NotSupportedException($"This thread's root Html must provide its own composer."), literalLength, formattedCount)
     {
     }
 
@@ -189,7 +189,7 @@ public ref partial struct Html : IDisposable
 
     public readonly void Dispose()
     {
-        _scopedComposer?.Reset();
-        _scopedComposer = null;
+        t_scopedComposer?.Reset();
+        t_scopedComposer = null;
     }
 }

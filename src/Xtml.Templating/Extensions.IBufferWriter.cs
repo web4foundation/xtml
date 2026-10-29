@@ -92,7 +92,7 @@ public ref partial struct Html
 {
     // Enables the pattern: pipeWriter.Write($"...");
     public Html(int literalLength, int formattedCount, IBufferWriter<byte> writer)
-        : this(_scopedComposer = HtmlComposer.Reuse(writer), literalLength, formattedCount)
+        : this(t_scopedComposer = HtmlComposer.Reuse(writer), literalLength, formattedCount)
     {
     }
 }

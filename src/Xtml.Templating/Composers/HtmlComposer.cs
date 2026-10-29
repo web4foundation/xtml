@@ -34,15 +34,15 @@ public class HtmlComposer(IBufferWriter<byte> writer) : BaseComposer, IStreaming
         base.Reset();
     }
 
-    [ThreadStatic] static HtmlComposer? reusable;
+    [ThreadStatic] static HtmlComposer? t_reusable;
     public static HtmlComposer Reuse(IBufferWriter<byte> writer)
     {
-        if (reusable is {} composer)
+        if (t_reusable is {} composer)
         {
             composer.Writer = writer;
             return composer;
         }
 
-        return reusable = new HtmlComposer(writer);
+        return t_reusable = new HtmlComposer(writer);
     }
 }

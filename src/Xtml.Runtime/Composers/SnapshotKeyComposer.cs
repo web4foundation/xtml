@@ -234,6 +234,6 @@ public class SnapshotKeyComposer : BaseKeyComposer
         }
     }
 
-    [ThreadStatic] static SnapshotKeyComposer? _reusable;
-    public static SnapshotKeyComposer Shared => _reusable ??= new SnapshotKeyComposer();
+    [ThreadStatic] static SnapshotKeyComposer? t_reusable;
+    public static SnapshotKeyComposer Shared => t_reusable ??= new SnapshotKeyComposer();
 }

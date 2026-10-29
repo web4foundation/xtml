@@ -6,8 +6,8 @@ namespace Xtml.Runtime.Composers;
 
 public class FindKeyComposer : BaseKeyComposer
 {
-    [ThreadStatic] static FindKeyComposer? _reusable;
-    public static FindKeyComposer Shared => _reusable ??= new FindKeyComposer();
+    [ThreadStatic] static FindKeyComposer? t_reusable;
+    public static FindKeyComposer Shared => t_reusable ??= new FindKeyComposer();
 
     private EventListener _eventListener = default;
     private byte[] _keyBuffer = [];

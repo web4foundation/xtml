@@ -44,16 +44,16 @@ public class HttpResponseComposer(HttpResponse httpResponse) : HtmlComposer(http
         base.Reset();
     }
 
-    [ThreadStatic] static HttpResponseComposer? reusable;
+    [ThreadStatic] static HttpResponseComposer? t_reusable;
     public static HttpResponseComposer Reuse(HttpResponse httpResponse)
     {
-        if (reusable is {} composer)
+        if (t_reusable is {} composer)
         {
             composer._httpResponse = httpResponse;
             composer.Writer = httpResponse.BodyWriter;
             return composer;
         }
 
-        return reusable = new HttpResponseComposer(httpResponse);
+        return t_reusable = new HttpResponseComposer(httpResponse);
     }
 }

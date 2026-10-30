@@ -193,7 +193,7 @@ public ref struct Reconciler(IRpcClient mutator, Keyhole[] oldBuffer, Keyhole[] 
             }
             else
             {
-                mutator.SetValue(newKeyhole.Key, ref newKeyhole);
+                mutator.SetValue(newKeyhole.Key, in newKeyhole);
             }
         }
 

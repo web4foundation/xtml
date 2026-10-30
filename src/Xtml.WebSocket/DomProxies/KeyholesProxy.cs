@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Xtml.Dom;
 using Xtml.Runtime;
 using Xtml.Runtime.Utilities;
+using Xtml.WebSocket.JsonRpc;
 
 namespace Xtml.WebSocket;
 
@@ -12,80 +13,64 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
 {
     public IKeyholes Keyholes => this;
 
-    public void SetValue(byte[] key, ref Keyhole keyhole)
-    {
-        JsonRpc.WriteNotification(
-            method: ("keyholes['", key, "'].setValue"),
-            param1: ref keyhole
-        );
-    }
+    public void SetValue(byte[] key, in Keyhole keyhole) => JsonRpcWriter
+        .Batch(this)
+        .Method(("keyholes['", key, "'].setValue"))
+        .Param(in keyhole)
+        .AsNotification();
 
-    public void SetValue(byte[] key, Span<Keyhole> keyholes)
-    {
-        JsonRpc.WriteNotification(
-            method: ("keyholes['", key, "'].setValue"),
-            param1: keyholes
-        );
-    }
+    public void SetValue(byte[] key, Span<Keyhole> keyholes) => JsonRpcWriter
+        .Batch(this)
+        .Method(("keyholes['", key, "'].setValue"))
+        .Param(keyholes)
+        .AsNotification();
 
-    public void SetNode(Keyhole[] buffer, byte[] key, Span<Keyhole> keyholes, ValueTuple<string, int>? viewTransitionNameNew = null, ValueTuple<string, int>? viewTransitionNameOld = null)
-    {
-        if (viewTransitionNameNew is not null && viewTransitionNameOld is not null)
-            JsonRpc.WriteNotification(buffer,
-                method: ("keyholes['", key, "'].setNode"),
-                param1: keyholes,
-                param2: viewTransitionNameNew.Value,
-                param3: viewTransitionNameOld.Value
-            );
-        else
-            JsonRpc.WriteNotification(buffer,
-                method: ("keyholes['", key, "'].setNode"),
-                param1: keyholes
-            );
-    }
+    public void SetNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes) => JsonRpcWriter
+        .Batch(this)
+        .Method(("keyholes['", key, "'].setNode"))
+        .Param(snapshot, keyholes)
+        .AsNotification();
 
-    public void SetNode(Keyhole[] buffer, byte[] key, Span<Keyhole> keyholes, ValueTuple<string, byte[]> viewTransitionName)
-    {
-        JsonRpc.WriteNotification(buffer,
-            method: ("keyholes['", key, "'].setNode"),
-            param1: keyholes,
-            param2: viewTransitionName
-        );
-    }
+    public void SetNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, ValueTuple<string, byte[]> viewTransitionName) => JsonRpcWriter
+        .Batch(this)
+        .Method(("keyholes['", key, "'].setNode"))
+        .Param(snapshot, keyholes)
+        .Param(viewTransitionName)
+        .AsNotification();
 
-    public void PushNode(Keyhole[] buffer, byte[] key, Span<Keyhole> keyholes, byte[] newKey)
-    {
-        JsonRpc.WriteNotification(buffer,
-            method: ("keyholes['", key, "'].pushNode"),
-            param1: keyholes,
-            param2: newKey
-        );
-    }
+    public void SetNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, ValueTuple<string, int> viewTransitionNameNew, ValueTuple<string, int> viewTransitionNameOld) => JsonRpcWriter
+        .Batch(this)
+        .Method(("keyholes['", key, "'].setNode"))
+        .Param(snapshot, keyholes)
+        .Param(viewTransitionNameNew)
+        .Param(viewTransitionNameOld)
+        .AsNotification();
 
-    public void PushNode(Keyhole[] buffer, byte[] key, Span<Keyhole> keyholes, byte[] newKey, ValueTuple<string, int> viewTransitionName)
-    {
-        JsonRpc.WriteNotification(buffer,
-            method: ("keyholes['", key, "'].pushNode"),
-            param1: keyholes,
-            param2: newKey,
-            param3: viewTransitionName
-        );
-    }
+    public void PushNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, byte[] newKey) => JsonRpcWriter
+        .Batch(this)
+        .Method(("keyholes['", key, "'].pushNode"))
+        .Param(snapshot, keyholes)
+        .Param(newKey)
+        .AsNotification();
 
-    public void PopNode(byte[] key)
-    {
-        JsonRpc.WriteNotification(
-            method: ("keyholes['", key, "'].popNode")
-        );
-    }
+    public void PushNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, byte[] newKey, ValueTuple<string, int> viewTransitionName) => JsonRpcWriter
+        .Batch(this)
+        .Method(("keyholes['", key, "'].pushNode"))
+        .Param(snapshot, keyholes)
+        .Param(newKey)
+        .Param(viewTransitionName)
+        .AsNotification();
 
-    public void PopNode(byte[] key, ValueTuple<string, int> viewTransitionName)
-    {
-        JsonRpc.WriteNotification(
-            method: ("keyholes['", key, "'].popNode"),
-            param1: viewTransitionName
-        );
-    }
+    public void PopNode(byte[] key) => JsonRpcWriter
+        .Batch(this)
+        .Method(("keyholes['", key, "'].popNode"))
+        .AsNotification();
+    
+    public void PopNode(byte[] key, ValueTuple<string, int> viewTransitionName) => JsonRpcWriter
+        .Batch(this)
+        .Method(("keyholes['", key, "'].popNode"))
+        .Param(viewTransitionName)
+        .AsNotification();
 
     public void DispatchEvent(Action listener)
     {
@@ -167,9 +152,15 @@ public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
     }
 
-    public void Ping()
+    public void Ping(int requestId)
     {
         var stopwatch = LogMessageStarted("ping");
+
+        JsonRpcWriter
+            .Batch(this)
+            .Result("pong")
+            .AsResponse(requestId);
+
         LogMessageEnded("ping", stopwatch);
     }
 

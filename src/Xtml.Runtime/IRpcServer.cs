@@ -8,7 +8,7 @@ public interface IRpcServer
     void DispatchEvent<T>(Action<Event> listener, T @event) where T : struct, Event;
     Task DispatchEvent(Func<Task> listener);
     Task DispatchEvent<T>(Func<Event, Task> listener, T @event) where T : struct, Event;
-    void Ping();
+    void Ping(int requestId);
     void Dump();
     void Benchmark(int? threads);
 }

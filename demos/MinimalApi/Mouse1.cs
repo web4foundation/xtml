@@ -23,7 +23,7 @@ var window = app.MapUI("/", () => $"""
     </html>
     """);
 
-void OnClick(Event.Mouse e)
+void OnClick()
 {
     c++;
 }

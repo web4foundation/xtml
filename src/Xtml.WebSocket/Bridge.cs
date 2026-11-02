@@ -228,41 +228,21 @@ internal partial class Bridge : SynchronizationContext
                         case { Action: { } withoutEvent }:
                             @event.Dispose();                                   // Event not needed.  Return buffer to pool early.
                             Keyholes.DispatchEvent(withoutEvent);
-
-
-// TODO: 🚨 Delete this when ready.
-_isInvalidated = true;
-Reconcile();
-
                             break;
+
                         case { ActionEvent: { } withEvent }:
                             Keyholes.DispatchEvent(withEvent, @event);
-
-
-// TODO: 🚨 Delete this when ready.
-_isInvalidated = true;
-Reconcile();
-
                             break;
+
                         case { Func: { } withoutEventAsync }:
                             @event.Dispose();                                   // Event not needed.  Return buffer to pool early.
                             _ = Keyholes.DispatchEvent(withoutEventAsync);      // Do not await here or it will block the event loop.
-
-
-// TODO: 🚨 Delete this when ready.
-_isInvalidated = true;
-Reconcile();
-
                             break;
+
                         case { FuncEvent: { } withEventAsync }:
                             _ = Keyholes.DispatchEvent(withEventAsync, @event); // Do not await here or it will block the event loop.
-
-
-// TODO: 🚨 Delete this when ready.
-_isInvalidated = true;
-Reconcile();
-
                             break;
+
                         default:
                             @event.Dispose();
                             _logger.LogWarning("Event listener not found.  Possible race condition.");
@@ -296,8 +276,8 @@ Reconcile();
 
 // TODO: 🚨 Meat and potatoes here.
 // Just thought of something.  What if this was 1 second long?  How would things behave?
-// _isInvalidated = true;
-// Reconcile();
+_isInvalidated = true;
+Reconcile();
 
                 var bytesRemaining = output.Length;
                 foreach (ReadOnlyMemory<byte> buffer in output)

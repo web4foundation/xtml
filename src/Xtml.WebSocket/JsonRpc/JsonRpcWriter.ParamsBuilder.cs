@@ -75,8 +75,8 @@ internal ref partial struct JsonRpcWriter
                 writer.Utf8Json.WriteEndArray();
 
             writer.Utf8Json.WriteEndObject();
-            if (writer.Flushing == Flushing.Immediately)
-                writer.Flush(bridge);
+            if (!writer.IsBatching)
+                Flush(bridge, writer);
         }
 
         public Task<T> AsRequest<T>()
@@ -88,8 +88,8 @@ internal ref partial struct JsonRpcWriter
             writer.Utf8Json.WriteString("id", id);
 
             writer.Utf8Json.WriteEndObject();
-            if (writer.Flushing == Flushing.Immediately)
-                writer.Flush(bridge);
+            if (!writer.IsBatching)
+                Flush(bridge, writer);
 
             // TODO: Build JsonRpc Async!  Note: I guess this will automatically flush thanks to its SyncCtx.
             throw new NotImplementedException();

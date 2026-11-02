@@ -15,7 +15,7 @@ using SystemWebSocket = System.Net.WebSockets.WebSocket;
 
 namespace Xtml.WebSocket;
 
-public partial class Bridge : SynchronizationContext
+internal partial class Bridge : SynchronizationContext
 {
     private readonly static ConcurrentDictionary<Guid, Bridge> _windows = [];
     private readonly Func<Html> _template;
@@ -23,11 +23,11 @@ public partial class Bridge : SynchronizationContext
     private readonly Propagation _propagation = new();
     private bool _isInvalidated;
     private Keyhole[] _snapshot;
+    private Channel<ReadOnlySequence<byte>> _eventLoopChannel;
+    private Channel<ReadOnlySequence<byte>> _outputChannel;
 
     public Guid WindowId { get; init; }
     public List<EventListener> RootEventListeners { get; init; }
-    public Channel<ReadOnlySequence<byte>> EventLoopChannel { get; init; }
-    public Channel<ReadOnlySequence<byte>> OutputChannel { get; init; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromMilliseconds(1000d / 60d); // 60fps
     
     private Bridge(Guid windowId, Func<Html> template, List<EventListener> listeners, ILogger logger)
@@ -40,7 +40,7 @@ public partial class Bridge : SynchronizationContext
         _isInvalidated = false;
         _snapshot = CaptureSnapshot(); // TODO: Should this be passed in as an arg from the byproduct of HtmlKeyComposer?
 
-        EventLoopChannel = Channel.CreateBounded<ReadOnlySequence<byte>>(
+        _eventLoopChannel = Channel.CreateBounded<ReadOnlySequence<byte>>(
             options: new(1000) // TODO: Make this limit configurable?
             {
                 AllowSynchronousContinuations = true,
@@ -56,7 +56,7 @@ public partial class Bridge : SynchronizationContext
             }
         );
 
-        OutputChannel = Channel.CreateBounded<ReadOnlySequence<byte>>(
+        _outputChannel = Channel.CreateBounded<ReadOnlySequence<byte>>(
             options: new(1000) // TODO: Make this limit configurable?
             {
                 AllowSynchronousContinuations = false, // Don't let network jitter impact the event loop.
@@ -119,7 +119,7 @@ public partial class Bridge : SynchronizationContext
                 var (result, message) = await webSocket.ReceiveAsync(cancel);
                 if (result.MessageType == WebSocketMessageType.Close)
                     break;
-                await EventLoopChannel.Writer.WriteAsync(message, cancel);
+                await _eventLoopChannel.Writer.WriteAsync(message, cancel);
             }
         }
         catch (WebSocketException wex)
@@ -159,9 +159,9 @@ public partial class Bridge : SynchronizationContext
             // run immediately, same thread, no awaiting.
             // Always remember to flush.  If any async work was kicked off, 
             // JsonRpcWriter's SyncCtx will flush every time it awaits.
-            while (await EventLoopChannel.Reader.WaitToReadAsync(cancel))
+            while (await _eventLoopChannel.Reader.WaitToReadAsync(cancel))
                 using (_ = JsonRpcWriter.Batch(this).FlushOnDispose())
-                    while (EventLoopChannel.Reader.TryRead(out var message))
+                    while (_eventLoopChannel.Reader.TryRead(out var message))
                         Process(message);
         }
     }
@@ -228,9 +228,20 @@ public partial class Bridge : SynchronizationContext
                         case { Action: { } withoutEvent }:
                             @event.Dispose();                                   // Event not needed.  Return buffer to pool early.
                             Keyholes.DispatchEvent(withoutEvent);
+
+
+// TODO: 🚨 Delete this when ready.
+_isInvalidated = true;
+Reconcile();
+
                             break;
                         case { ActionEvent: { } withEvent }:
                             Keyholes.DispatchEvent(withEvent, @event);
+
+
+// TODO: 🚨 Delete this when ready.
+_isInvalidated = true;
+Reconcile();
 
                             break;
                         case { Func: { } withoutEventAsync }:
@@ -238,9 +249,19 @@ public partial class Bridge : SynchronizationContext
                             _ = Keyholes.DispatchEvent(withoutEventAsync);      // Do not await here or it will block the event loop.
 
 
+// TODO: 🚨 Delete this when ready.
+_isInvalidated = true;
+Reconcile();
+
                             break;
                         case { FuncEvent: { } withEventAsync }:
                             _ = Keyholes.DispatchEvent(withEventAsync, @event); // Do not await here or it will block the event loop.
+
+
+// TODO: 🚨 Delete this when ready.
+_isInvalidated = true;
+Reconcile();
+
                             break;
                         default:
                             @event.Dispose();
@@ -271,8 +292,12 @@ public partial class Bridge : SynchronizationContext
         {
             try
             {
-                var output = await OutputChannel.Reader.ReadAsync(cancel);
+                var output = await _outputChannel.Reader.ReadAsync(cancel);
 
+// TODO: 🚨 Meat and potatoes here.
+// Just thought of something.  What if this was 1 second long?  How would things behave?
+// _isInvalidated = true;
+// Reconcile();
 
                 var bytesRemaining = output.Length;
                 foreach (ReadOnlyMemory<byte> buffer in output)
@@ -297,6 +322,12 @@ public partial class Bridge : SynchronizationContext
                 _logger.LogError(ex, "Unexpected error writing to the WebSocket: {Message}", ex.Message);
             }
         }
+    }
+
+    public void Flush(ReadOnlySequence<byte> output)
+    {
+        if (!_outputChannel.Writer.TryWrite(output))
+            throw new InvalidOperationException("Failed to write to output channel."); // TODO: How to fail?
     }
 
     private static ReadOnlySpan<byte> GetKey(ReadOnlySpan<byte> method)

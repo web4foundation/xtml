@@ -1,12 +1,10 @@
-using System.Buffers;
 using System.Numerics;
-using System.Threading.Channels;
 
 namespace Xtml.WebSocket.JsonRpc;
 
 internal ref partial struct JsonRpcWriter
 {
-    public ref partial struct ParamsBuilder(SyncCtx context)
+    public ref partial struct ParamsBuilder(Bridge bridge, HybridWriter writer)
     {
         private bool _isFirstParam = true;
 
@@ -14,7 +12,7 @@ internal ref partial struct JsonRpcWriter
         {
             TryStartParamsArray();
 
-            context.JsonWriter.WriteStringValue(value);
+            writer.Utf8Json.WriteStringValue(value);
 
             return this;
         }
@@ -24,9 +22,9 @@ internal ref partial struct JsonRpcWriter
             TryStartParamsArray();
 
             if (value.HasValue)
-                context.JsonWriter.WriteBooleanValue(value.Value);
+                writer.Utf8Json.WriteBooleanValue(value.Value);
             else
-                context.JsonWriter.WriteNullValue();
+                writer.Utf8Json.WriteNullValue();
 
             return this;
         }
@@ -38,15 +36,15 @@ internal ref partial struct JsonRpcWriter
             if (value.HasValue)
                 switch (value.Value)
                 {
-                    case int i: context.JsonWriter.WriteNumberValue(i); break;
-                    case long l: context.JsonWriter.WriteNumberValue(l); break;
-                    case float f: context.JsonWriter.WriteNumberValue(f); break;
-                    case double d: context.JsonWriter.WriteNumberValue(d); break;
-                    case decimal m: context.JsonWriter.WriteNumberValue(m); break;
+                    case int i: writer.Utf8Json.WriteNumberValue(i); break;
+                    case long l: writer.Utf8Json.WriteNumberValue(l); break;
+                    case float f: writer.Utf8Json.WriteNumberValue(f); break;
+                    case double d: writer.Utf8Json.WriteNumberValue(d); break;
+                    case decimal m: writer.Utf8Json.WriteNumberValue(m); break;
                     default: throw new NotSupportedException($"Type {typeof(T)} is not supported");
                 }
             else
-                context.JsonWriter.WriteNullValue();
+                writer.Utf8Json.WriteNullValue();
 
             return this;
         }
@@ -56,7 +54,7 @@ internal ref partial struct JsonRpcWriter
             TryStartParamsArray();
             
             if (value is not null)
-                context.JsonWriter.WriteStringValue(value);
+                writer.Utf8Json.WriteStringValue(value);
 
             return this;
         }
@@ -66,7 +64,7 @@ internal ref partial struct JsonRpcWriter
             TryStartParamsArray();
 
             foreach (var param in @params)
-                context.JsonWriter.WriteStringValue(param);
+                writer.Utf8Json.WriteStringValue(param);
 
             return this;
         }
@@ -74,20 +72,24 @@ internal ref partial struct JsonRpcWriter
         public void AsNotification()
         {
             if (!_isFirstParam)
-                context.JsonWriter.WriteEndArray();
+                writer.Utf8Json.WriteEndArray();
 
-            context.JsonWriter.WriteEndObject();
+            writer.Utf8Json.WriteEndObject();
+            if (writer.Flushing == Flushing.Immediately)
+                writer.Flush(bridge);
         }
 
         public Task<T> AsRequest<T>()
         {
             if (!_isFirstParam)
-                context.JsonWriter.WriteEndArray();
+                writer.Utf8Json.WriteEndArray();
 
             var id = Guid.NewGuid();
-            context.JsonWriter.WriteString("id", id);
+            writer.Utf8Json.WriteString("id", id);
 
-            context.JsonWriter.WriteEndObject();
+            writer.Utf8Json.WriteEndObject();
+            if (writer.Flushing == Flushing.Immediately)
+                writer.Flush(bridge);
 
             // TODO: Build JsonRpc Async!  Note: I guess this will automatically flush thanks to its SyncCtx.
             throw new NotImplementedException();
@@ -96,7 +98,7 @@ internal ref partial struct JsonRpcWriter
         private void TryStartParamsArray()
         {
             if (_isFirstParam)
-                context.JsonWriter.WriteStartArray("params");
+                writer.Utf8Json.WriteStartArray("params");
             _isFirstParam = false;
         }
     }

@@ -2,7 +2,7 @@ namespace Xtml.WebSocket.JsonRpc;
 
 internal ref partial struct JsonRpcWriter
 {
-    public ref partial struct ErrorBuilder(SyncCtx context)
+    public ref partial struct ErrorBuilder(Bridge bridge, HybridWriter writer)
     {
         public ErrorBuilder Data(object data)
         {
@@ -11,8 +11,11 @@ internal ref partial struct JsonRpcWriter
 
         public void AsNotification()
         {
-            context.JsonWriter.WriteEndObject();
-            context.JsonWriter.WriteEndObject();
+            writer.Utf8Json.WriteEndObject();
+            writer.Utf8Json.WriteEndObject();
+            
+            if (writer.Flushing == Flushing.Immediately)
+                writer.Flush(bridge);
         }
     }
 }

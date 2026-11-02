@@ -15,7 +15,7 @@ using SystemWebSocket = System.Net.WebSockets.WebSocket;
 
 namespace Xtml.WebSocket;
 
-public partial class Bridge
+public partial class Bridge : SynchronizationContext
 {
     private readonly static ConcurrentDictionary<Guid, Bridge> _windows = [];
     private readonly Func<Html> _template;
@@ -160,10 +160,34 @@ public partial class Bridge
             // Always remember to flush.  If any async work was kicked off, 
             // JsonRpcWriter's SyncCtx will flush every time it awaits.
             while (await EventLoopChannel.Reader.WaitToReadAsync(cancel))
-                using (_ = JsonRpcWriter.FlushWhenDone())
+                using (_ = JsonRpcWriter.Batch(this).FlushOnDispose())
                     while (EventLoopChannel.Reader.TryRead(out var message))
                         Process(message);
         }
+    }
+
+    private record struct StateHolder(SendOrPostCallback Callback, object? State, Bridge Bridge);
+
+    public override void Post(SendOrPostCallback callback, object? state)
+    {
+        ThreadPool.QueueUserWorkItem<StateHolder>(
+            callBack: static stateHolder => {
+                // Set it again because AspNetWebSocket uses ConfigureAwait(false)
+                SetSynchronizationContext(stateHolder.Bridge);
+
+                // Just like in EventLoop(), set this to flush just before yielding this thread back to the pool.
+                using var _ = JsonRpcWriter.Batch(stateHolder.Bridge).FlushOnDispose();
+
+                // The awaiting is done.  Execute what comes after the `await`.
+                stateHolder.Callback(stateHolder.State);
+            },
+            state: new StateHolder(
+                Callback: callback, 
+                State: state, 
+                Bridge: this
+            ),
+            preferLocal: false
+        );
     }
 
     private void Process(ReadOnlySequence<byte> message)

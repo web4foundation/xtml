@@ -2,7 +2,7 @@ using System.Buffers;
 
 namespace Xtml.WebSocket.Buffers;
 
-public class PooledSequenceBufferWriter<T> : IBufferWriter<T>
+internal class PooledSequenceBufferWriter<T> : IBufferWriter<T>
 {
     private const int DEFAULT_BUFFER_SIZE = 16384;
     private T[]? _currentBuffer;

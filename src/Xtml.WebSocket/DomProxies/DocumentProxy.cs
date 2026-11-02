@@ -4,7 +4,7 @@ namespace Xtml.WebSocket;
 
 // Instead of a new-ing up another class, save an instantiation 
 // and explicitly implement on Bridge.
-public partial class Bridge : IDocument
+internal partial class Bridge : IDocument
 {
     public IDocument Document => this;
 

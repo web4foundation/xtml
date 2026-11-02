@@ -9,7 +9,7 @@ namespace Xtml.WebSocket;
 
 // Instead of a new-ing up another class, save an instantiation 
 // and explicitly implement on Bridge.
-public partial class Bridge : IRpcClient, IRpcServer, IKeyholes
+internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
 {
     public IKeyholes Keyholes => this;
 

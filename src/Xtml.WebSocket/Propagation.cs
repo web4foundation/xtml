@@ -1,6 +1,6 @@
 namespace Xtml.WebSocket;
 
-public class Propagation
+internal class Propagation
 {
     public int CurrentID { get; set; }
     public int CurrentLevel { get; set; }

@@ -2,7 +2,7 @@ using System.Buffers;
 
 namespace Xtml.WebSocket.Buffers;
 
-public class SequenceSegment<T> : ReadOnlySequenceSegment<T>
+internal class SequenceSegment<T> : ReadOnlySequenceSegment<T>
 {
     public T[] RentedBuffer { get; init; }
 
@@ -24,9 +24,9 @@ public class SequenceSegment<T> : ReadOnlySequenceSegment<T>
     }
 }
 
-public static class ReadOnlySequenceExtensions
+internal static class ReadOnlySequenceExtensions
 {
-    public static void ReturnToPool<T>(this ReadOnlySequence<T> sequence)
+    internal static void ReturnToPool<T>(this ReadOnlySequence<T> sequence)
     {
         if (sequence.IsSingleSegment)
         {

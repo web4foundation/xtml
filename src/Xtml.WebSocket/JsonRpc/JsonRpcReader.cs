@@ -6,7 +6,7 @@ using Xtml.WebSocket.Dom;
 
 namespace Xtml.WebSocket.JsonRpc;
 
-public readonly ref struct JsonRpcReader
+internal readonly ref struct JsonRpcReader
 {
     public ReadOnlySpan<byte> Version { get; init; }
     public ReadOnlySpan<byte> Method { get; init; }
@@ -128,11 +128,11 @@ public readonly ref struct JsonRpcReader
     }
 }
 
-public static class Utf8JsonReaderExtensions
+internal static class Utf8JsonReaderExtensions
 {
     extension(Utf8JsonReader reader)
     {
-        public ReadOnlySpan<byte> SafeValueSpan => reader.HasValueSequence
+        internal ReadOnlySpan<byte> SafeValueSpan => reader.HasValueSequence
             ? reader.ValueSequence.ToArray() // TODO: Allocates, but is rare?  Confirm.
             : reader.ValueSpan;
     }

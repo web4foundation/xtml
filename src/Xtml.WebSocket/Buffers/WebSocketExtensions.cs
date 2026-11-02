@@ -4,11 +4,11 @@ using Xtml.Runtime.Utilities;
 
 namespace Xtml.WebSocket.Buffers;
 
-public static class WebSocketExtensions
+internal static class WebSocketExtensions
 {
     private const int RECEIVE_BUFFER_LENGTH = 4096;
 
-    public static async Task<(WebSocketReceiveResult, ReadOnlySequence<byte>)> ReceiveAsync(
+    internal static async Task<(WebSocketReceiveResult, ReadOnlySequence<byte>)> ReceiveAsync(
         this System.Net.WebSockets.WebSocket webSocket, 
         CancellationToken cancel = default)
     {

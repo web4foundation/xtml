@@ -5,7 +5,7 @@ namespace Xtml.WebSocket;
 
 // Instead of a new-ing up another class, save an instantiation 
 // and explicitly implement on Bridge.
-public partial class Bridge : IWindow
+internal partial class Bridge : IWindow
 {
     public IWindow Window => this;
     IConsole IWindow.Console => this;

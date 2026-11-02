@@ -20,7 +20,7 @@ namespace Xtml.WebSocket.Dom;
 /// Additionally, if the only properties lazily accessed are value types (e.g. bool, int, long, double)
 /// then this struct will avoid allocating a surplus of memory on the heap by pooling its dictionary.
 /// </summary>
-public struct EventProxy(
+internal struct EventProxy(
     ReadOnlySequence<byte> rentedBuffer, 
     ReadOnlySequence<byte> eventBuffer, 
     IWindow window, 

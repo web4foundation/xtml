@@ -2,7 +2,7 @@
 
 namespace Xtml.WebSocket;
 
-public static class HotReload
+internal static class HotReload
 {
     public static int ReloadCount { get; private set; } = 0;
     public static event Action<Type[]?>? UpdateApplicationEvent;
@@ -16,7 +16,7 @@ using System.Reflection.Metadata;
 
 namespace Xtml.WebSocket;
 
-public static class HotReload
+internal static class HotReload
 {
     public static int ReloadCount { get; private set; } = 0;
     public static event Action<Type[]?>? UpdateApplicationEvent;

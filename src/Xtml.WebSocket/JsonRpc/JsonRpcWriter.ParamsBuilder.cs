@@ -71,8 +71,7 @@ internal ref partial struct JsonRpcWriter
 
         public void AsNotification()
         {
-            if (!_isFirstParam)
-                writer.Utf8Json.WriteEndArray();
+            TryEndParamsArray();
 
             writer.Utf8Json.WriteEndObject();
             if (!writer.IsBatching)
@@ -81,8 +80,7 @@ internal ref partial struct JsonRpcWriter
 
         public Task<T> AsRequest<T>()
         {
-            if (!_isFirstParam)
-                writer.Utf8Json.WriteEndArray();
+            TryEndParamsArray();
 
             var id = Guid.NewGuid();
             writer.Utf8Json.WriteString("id", id);
@@ -100,6 +98,12 @@ internal ref partial struct JsonRpcWriter
             if (_isFirstParam)
                 writer.Utf8Json.WriteStartArray("params");
             _isFirstParam = false;
+        }
+
+        private void TryEndParamsArray()
+        {
+            if (!_isFirstParam)
+                writer.Utf8Json.WriteEndArray();
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using Xtml.WebSocket.Buffers;
@@ -24,7 +25,7 @@ internal ref partial struct JsonRpcWriter
         }
         
         var writer = t_current;
-        if (writer.Buffer.WrittenCount + writer.Utf8Json.BytesPending == 0)
+        if (writer.Utf8Json.BytesCommitted + writer.Utf8Json.BytesPending == 0)
             writer.Utf8Json.WriteStartArray();
         return new MessageBuilder(bridge, writer);
     }
@@ -55,11 +56,9 @@ internal ref partial struct JsonRpcWriter
 
     public static void Flush(Bridge bridge, HybridWriter writer)
     {
-        if (writer.Buffer.WrittenCount + writer.Utf8Json.BytesPending == 0)
+        if (writer.Utf8Json.BytesCommitted == 0)
             return;
         
-        // TODO: If nothing is written (only `[`), return early.
-
         writer.Utf8Json.WriteEndArray();
         writer.Utf8Json.Flush();
 

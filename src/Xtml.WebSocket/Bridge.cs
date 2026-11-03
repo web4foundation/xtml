@@ -135,8 +135,15 @@ internal partial class Bridge : SynchronizationContext
     private async Task EventLoop(CancellationToken cancel = default)
     {
         var lastRun = Stopwatch.StartNew();
-        while (!cancel.IsCancellationRequested)
+        while (await _eventLoopChannel.Reader.WaitToReadAsync(cancel))
         {
+            lastRun.Restart();
+            using (var flusher = JsonRpcWriter.Batch(this).FlushOnDispose())
+            {
+                while (_eventLoopChannel.Reader.TryRead(out var message))
+                    Process(message);
+            }
+
             // Debounce! 
             // If the last batch was less than 16ms ago (60 fps), wait until the "next frame"
             // (i.e. no need to update the DOM more frequently than the screen's own refresh rate).
@@ -145,24 +152,10 @@ internal partial class Bridge : SynchronizationContext
             // when most screens can only handle 60-144 Hz.
             if (RefreshRate > TimeSpan.Zero)
             {
-                // TODO: I don't like how it awaits Task.Delay on the first run.
                 var timeRemaining = RefreshRate - lastRun.Elapsed;
                 if (timeRemaining > TimeSpan.Zero)
                     await Task.Delay(timeRemaining, cancel);
-                lastRun.Restart();
             }
-
-            // If here, this connection has a green light to do work again so await 
-            // until a message is received.  If multiple messages have been 
-            // queued while awaiting or working, run them all before awaiting again.
-            // If this batch takes longer than 16ms to run, the next iteration will 
-            // run immediately, same thread, no awaiting.
-            // Always remember to flush.  If any async work was kicked off, 
-            // JsonRpcWriter's SyncCtx will flush every time it awaits.
-            while (await _eventLoopChannel.Reader.WaitToReadAsync(cancel))
-                using (_ = JsonRpcWriter.Batch(this).FlushOnDispose())
-                    while (_eventLoopChannel.Reader.TryRead(out var message))
-                        Process(message);
         }
     }
 
@@ -273,13 +266,10 @@ internal partial class Bridge : SynchronizationContext
             try
             {
                 var output = await _outputChannel.Reader.ReadAsync(cancel);
-
-// TODO: 🚨 Meat and potatoes here.
-// Just thought of something.  What if this was 1 second long?  How would things behave?
-_isInvalidated = true;
-Reconcile();
-
                 var bytesRemaining = output.Length;
+                if (bytesRemaining == 0)
+                    continue;
+                
                 foreach (ReadOnlyMemory<byte> buffer in output)
                 {
                     bytesRemaining -= buffer.Length;
@@ -339,24 +329,13 @@ Reconcile();
 
     public void Invalidate()
     {
-        if (_isInvalidated)
-            return;
         _isInvalidated = true;
     }
 
-    private void Reconcile()
+    public void Reconcile()
     {
         if (!_isInvalidated)
-        {
-            _logger.LogWarning("Cancelling Reconcile() because IsInvalidated is false (which is unexpected and should be investigated).");
             return;
-        }
-
-        if (_snapshot is null)
-        {
-            _logger.LogWarning("Cancelling Reconcile() because snapshot is null (which is unexpected and should be investigated).");
-            return;
-        }
 
         try
         {

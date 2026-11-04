@@ -56,7 +56,7 @@ internal ref partial struct JsonRpcWriter
 
     public static void Flush(Bridge bridge, HybridWriter writer)
     {
-        if (writer.Utf8Json.BytesCommitted == 0)
+        if (writer.Utf8Json.BytesCommitted == 0 && writer.Utf8Json.BytesPending <= 1) // i.e. the `[`
             return;
         
         writer.Utf8Json.WriteEndArray();

@@ -283,17 +283,28 @@ class WebSocketBridge {
           .split(/[.\[\]\'\"]/)
           .filter(i => i)
           .reduce(([obj, func], prop) => [func, func[prop]], [null, window]);
-        func.apply(obj, rpc.params);
+
+        var result = func.apply(obj, rpc.params);
+
+        // A possible result to return
+        if (rpc.id) {
+          let message = { jsonrpc: "2.0", result, id: rpc.id };
+          this.#webSocket.send(JSON.stringify(message));
+        }
       }
 
-      // A result to return
-      if (rpc.id) {
+      // A result returned from the server
+      if (rpc.result) {
         let promise = this.#promises.get(rpc.id);
         this.#promises.delete(rpc.id);
-        if (rpc.error)
-          promise.reject(rpc.error);
-        else
-          promise.resolve(rpc.result);
+        promise.resolve(rpc.result);
+      }
+
+      // An error returned from the server
+      if (rpc.error) {
+        let promise = this.#promises.get(rpc.id);
+        this.#promises.delete(rpc.id);
+        promise.reject(rpc.error);
       }
     });
 

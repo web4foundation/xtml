@@ -29,6 +29,6 @@ internal partial class Bridge : IWindow
         .Batch(this)
         .Method("window.prompt")
         .Param(message)
-        .Param(defaultValue)
+        .OptionalParam(defaultValue)
         .AsRequest<string>();
 }

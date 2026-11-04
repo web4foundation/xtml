@@ -12,6 +12,7 @@ internal readonly ref struct JsonRpcReader
     public ReadOnlySpan<byte> Method { get; init; }
     public ReadOnlySpan<byte> Id { get; init; }
     public int? IdAsInt => int.TryParse(Id, out int result) ? result : null;
+    public Guid? IdAsGuid => Guid.TryParse(Id, out Guid result) ? result : null;
     public PositionalParams Params { get; init; }
     public ReadOnlySequence<byte> Result { get; init; }
     public ReadOnlySequence<byte> Error { get; init; }

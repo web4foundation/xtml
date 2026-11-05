@@ -26,6 +26,7 @@ internal partial class Bridge : SynchronizationContext
     private Keyhole[] _snapshot;
     private Channel<ReadOnlySequence<byte>> _eventLoopChannel;
     private Channel<ReadOnlySequence<byte>> _outputChannel;
+    private Dictionary<Guid, object>? _pendingRequests = null;
 
     public Guid WindowId { get; init; }
     public List<EventListener> RootEventListeners { get; init; }
@@ -354,6 +355,14 @@ internal partial class Bridge : SynchronizationContext
     {
         if (!_outputChannel.Writer.TryWrite(output))
             throw new InvalidOperationException("Failed to write to output channel."); // TODO: How to fail?
+    }
+
+    public Task<T> RegisterRequest<T>(Guid id)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        var pendingRequests = _pendingRequests ??= [];
+        pendingRequests[id] = tcs;
+        return tcs.Task;
     }
 
     private static ReadOnlySpan<byte> GetKey(ReadOnlySpan<byte> method)

@@ -83,14 +83,15 @@ internal ref partial struct JsonRpcWriter
             TryEndParamsArray();
 
             var id = Guid.NewGuid();
-            writer.Utf8Json.WriteString("id", id);
+            var task = bridge.RegisterRequest<T>(id);
 
+            writer.Utf8Json.WriteString("id", id);
             writer.Utf8Json.WriteEndObject();
+
             if (!writer.IsBatching)
                 Flush(bridge, writer);
 
-            // TODO: Build JsonRpc Async!  Note: I guess this will automatically flush thanks to its SyncCtx.
-            throw new NotImplementedException();
+            return task;
         }
 
         private void TryStartParamsArray()

@@ -12,6 +12,7 @@ using Xtml.Runtime.Utilities;
 using Xtml.Templating;
 using Xtml.WebSocket.JsonRpc;
 using SystemWebSocket = System.Net.WebSockets.WebSocket;
+using Xtml.WebSocket.Dom;
 
 namespace Xtml.WebSocket;
 
@@ -141,7 +142,7 @@ internal partial class Bridge : SynchronizationContext
             using (var flusher = JsonRpcWriter.Batch(this).FlushOnDispose())
             {
                 while (_eventLoopChannel.Reader.TryRead(out var message))
-                    Process(message);
+                    ProcessMessage(message);
             }
 
             // Debounce! 
@@ -183,80 +184,135 @@ internal partial class Bridge : SynchronizationContext
         );
     }
 
-    private void Process(ReadOnlySequence<byte> message)
+    private void ProcessMessage(ReadOnlySequence<byte> message)
     {
+        bool shouldReturnToPool = true;
         try
         {
             var rpc = new JsonRpcReader(message);
-
-            switch (rpc.Method)
+            shouldReturnToPool = rpc switch
             {
-                case var method when method.SequenceEqual("keyholes.dump"u8):
-                    Keyholes.Dump();
-                    break;
-
-                case var method when method.SequenceEqual("keyholes.benchmark"u8):
-                    Keyholes.Benchmark(
-                        threads: rpc.Params.GetNextOptionalAsInt()
-                    );
-                    break;
-
-                case var method when method.SequenceEqual("keyholes.ping"u8) && rpc.IdAsInt is int id:
-                    Keyholes.Ping(id);
-                    break;
-
-                case var method when method.EndsWith("dispatchEvent"u8):
-                    var @event = rpc.Params.GetNextAsEvent(message, Window, _propagation);
-
-                    // Do not handle this event if `stopPropagation()` or `stopImmediatePropagation()`
-                    // has previously been called on the browser's same event instance.
-                    if (_propagation.IsStopped)
-                    {
-                        @event.Dispose();
-                        return;
-                    }
-
-                    switch (GetEventListener(key: GetKey(method)))
-                    {
-                        case { Action: { } withoutEvent }:
-                            @event.Dispose();                                   // Event not needed.  Return buffer to pool early.
-                            Keyholes.DispatchEvent(withoutEvent);
-                            break;
-
-                        case { ActionEvent: { } withEvent }:
-                            Keyholes.DispatchEvent(withEvent, @event);
-                            break;
-
-                        case { Func: { } withoutEventAsync }:
-                            @event.Dispose();                                   // Event not needed.  Return buffer to pool early.
-                            _ = Keyholes.DispatchEvent(withoutEventAsync);      // Do not await here or it will block the event loop.
-                            break;
-
-                        case { FuncEvent: { } withEventAsync }:
-                            _ = Keyholes.DispatchEvent(withEventAsync, @event); // Do not await here or it will block the event loop.
-                            break;
-
-                        default:
-                            @event.Dispose();
-                            _logger.LogWarning("Event listener not found.  Possible race condition.");
-                            return;
-                    }
-
-                    // Return early to skip `message.ReturnToPool()` below.  
-                    // @event may need to survive beyond this point in async flows.
-                    return;
-
-                default:
-                    _logger.LogError("Unrecognized method: {Method}.  This should be impossible and needs fixing.", Encoding.UTF8.GetString(rpc.Method));
-                    break;
-            }
-
-            message.ReturnToPool();
+                _ when rpc.Method.Length > 0 => 
+                    ProcessMethod(rpc, message),
+                _ when rpc.Result.Length > 0 && rpc.IdAsGuid is Guid resultId => 
+                    ProcessResult(rpc, resultId),
+                _ when rpc.Error.Length > 0 => 
+                    ProcessError(rpc),
+                _ => throw new InvalidOperationException($"Unexpected message format: {Encoding.UTF8.GetString(message.ToArray())}")
+            };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error handling JsonRpc message: {Message}", ex.Message);
         }
+        finally
+        {
+            if (shouldReturnToPool)
+                message.ReturnToPool();
+        }
+    }
+    private bool ProcessMethod(in JsonRpcReader rpc, ReadOnlySequence<byte> message)
+    {
+        switch (rpc.Method)
+        {
+            case var method when method.SequenceEqual("keyholes.dump"u8):
+                Keyholes.Dump();
+                break;
+
+            case var method when method.SequenceEqual("keyholes.benchmark"u8):
+                Keyholes.Benchmark(
+                    threads: rpc.Params.GetNextOptionalAsInt()
+                );
+                break;
+
+            case var method when method.SequenceEqual("keyholes.ping"u8) && rpc.IdAsInt is int id:
+                Keyholes.Ping(id);
+                break;
+
+            case var method when method.EndsWith("dispatchEvent"u8):
+                ProcessEventListener(
+                    key: GetKey(method),
+                    @event: rpc.Params.GetNextAsEvent(message, Window, _propagation)
+                );
+                return false; // @event will return the buffer(s) to the pool.
+
+            default:
+                _logger.LogError("Unrecognized method: {Method}.  This should be impossible and needs fixing.", Encoding.UTF8.GetString(rpc.Method));
+                break;
+        }
+
+        return true;
+    }
+
+    private void ProcessEventListener(ReadOnlySpan<byte> key, EventProxy @event)
+    {
+        // Do not handle this event if `stopPropagation()` or `stopImmediatePropagation()`
+        // has previously been called on the browser's same event instance.
+        if (_propagation.IsStopped)
+        {
+            @event.Dispose();
+            return;
+        }
+
+        switch (GetEventListener(key))
+        {
+            case { Action: { } withoutEvent }:
+                @event.Dispose();                                   // Event not needed.  Return buffer to pool early.
+                Keyholes.DispatchEvent(withoutEvent);
+                break;
+
+            case { ActionEvent: { } withEvent }:
+                Keyholes.DispatchEvent(withEvent, @event);
+                break;
+
+            case { Func: { } withoutEventAsync }:
+                @event.Dispose();                                   // Event not needed.  Return buffer to pool early.
+                _ = Keyholes.DispatchEvent(withoutEventAsync);      // Do not await here or it will block the event loop.
+                break;
+
+            case { FuncEvent: { } withEventAsync }:
+                _ = Keyholes.DispatchEvent(withEventAsync, @event); // Do not await here or it will block the event loop.
+                break;
+
+            default:
+                @event.Dispose();
+                _logger.LogWarning("Event listener not found.  Possible race condition.");
+                break;
+        }
+
+        // Return early to skip `message.ReturnToPool()` below.  
+        // @event may need to survive beyond this point in async flows.
+        return;
+    }
+
+    private bool ProcessResult(in JsonRpcReader rpc, Guid resultId)
+    {
+        if (_pendingRequests != null && _pendingRequests.TryGetValue(resultId, out var tcs))
+        {
+            _pendingRequests.Remove(resultId);
+            switch (tcs)
+            {
+                case TaskCompletionSource<string?> tcsOfString:
+                    // TODO: Memory allocations
+                    var result = Encoding.UTF8.GetString(rpc.Result.ToArray()[1..^1]); // because surrounding quotes
+                    // TODO: String can be null too.  Try cancelling Prompt().
+                    tcsOfString.SetResult(result);
+                    break;
+                // TODO: Support other types...
+            }
+        }
+        else
+        {
+            // TODO: Handle missing task?
+        }
+
+        // TODO: Handle errors, timeouts, etc.
+        return true;
+    }
+
+    private bool ProcessError(in JsonRpcReader rpc)
+    {
+        return true;
     }
 
     private async Task WebSocketWrite(SystemWebSocket webSocket, CancellationToken cancel = default)

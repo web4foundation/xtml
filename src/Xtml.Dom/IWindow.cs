@@ -8,5 +8,5 @@ public interface IWindow
 
     void Focus();
     void Alert(string message);
-    Task<string> Prompt(string? message = null, string? defaultValue = null);
+    Task<string?> Prompt(string? message = null, string? defaultValue = null);
 }

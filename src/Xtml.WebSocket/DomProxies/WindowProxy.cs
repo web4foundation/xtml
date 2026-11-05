@@ -25,10 +25,10 @@ internal partial class Bridge : IWindow
         .Method("window.focus")
         .AsNotification();
 
-    Task<string> IWindow.Prompt(string? message, string? defaultValue) => JsonRpcWriter
+    Task<string?> IWindow.Prompt(string? message, string? defaultValue) => JsonRpcWriter
         .Batch(this)
         .Method("window.prompt")
         .Param(message)
         .OptionalParam(defaultValue)
-        .AsRequest<string>();
+        .AsRequest<string?>();
 }

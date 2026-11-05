@@ -294,10 +294,11 @@ internal partial class Bridge : SynchronizationContext
             switch (tcs)
             {
                 case TaskCompletionSource<string?> tcsOfString:
-                    // TODO: Memory allocations
-                    var result = Encoding.UTF8.GetString(rpc.Result.ToArray()[1..^1]); // because surrounding quotes
-                    // TODO: String can be null too.  Try cancelling Prompt().
-                    tcsOfString.SetResult(result);
+                    var result = rpc.Result.ToArray();
+                    if (result.SequenceEqual("null"u8))
+                        tcsOfString.SetResult(null);
+                    else
+                        tcsOfString.SetResult(Encoding.UTF8.GetString(result.AsSpan(1..^1))); // Strip surrounding quotes
                     break;
                 // TODO: Support other types...
             }

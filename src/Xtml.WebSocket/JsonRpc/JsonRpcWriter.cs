@@ -55,7 +55,7 @@ internal ref partial struct JsonRpcWriter
         }
     }
 
-    public static void Flush(Bridge bridge, HybridWriter writer)
+    private static void Flush(Bridge bridge, HybridWriter writer)
     {
         bridge.Invalidate();
         bridge.Reconcile();

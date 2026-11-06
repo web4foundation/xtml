@@ -15,8 +15,8 @@ internal partial struct JsonRpcWriter
 
                     // Just like in EventLoop(), set this to flush at the end of this block, 
                     // just before yielding this thread back to the pool.
-                    using var _ = JsonRpcWriter.Batch(stateHolder.Bridge).FlushOnDispose();
-
+                    using var flusher = JsonRpcWriter.FlushOnDispose(stateHolder.Bridge);
+                    
                     // The awaiting is done.  Execute what comes after the `await`.
                     stateHolder.Callback(stateHolder.State);
                 },

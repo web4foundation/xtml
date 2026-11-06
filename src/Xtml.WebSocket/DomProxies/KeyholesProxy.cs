@@ -117,10 +117,7 @@ internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         var stopwatch = LogMessageStarted("dispatchEvent");
         try
         {
-            JsonRpcWriter
-                .Batch(this)
-                .FlushOnAwait();
-            
+            JsonRpcWriter.FlushOnAwait(this);
             await listener();
         }
         catch (Exception ex)
@@ -140,10 +137,7 @@ internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         var stopwatch = LogMessageStarted("dispatchEvent");
         try
         {
-            JsonRpcWriter
-                .Batch(this)
-                .FlushOnAwait();
-            
+            JsonRpcWriter.FlushOnAwait(this);
             // TODO: Memory allocation casting from TEvent (struct) to Event interface.
             await listener(@event);
         }

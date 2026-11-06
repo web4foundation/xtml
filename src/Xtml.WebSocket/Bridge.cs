@@ -140,7 +140,7 @@ internal partial class Bridge
         while (await _eventLoopChannel.Reader.WaitToReadAsync(cancel))
         {
             lastRun.Restart();
-            using (var flusher = JsonRpcWriter.Batch(this).FlushOnDispose())
+            using (var flusher = JsonRpcWriter.FlushOnDispose(this))
             {
                 while (_eventLoopChannel.Reader.TryRead(out var message))
                     ProcessMessage(message);

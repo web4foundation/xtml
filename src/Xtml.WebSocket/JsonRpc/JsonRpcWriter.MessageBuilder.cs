@@ -5,7 +5,7 @@ namespace Xtml.WebSocket.JsonRpc;
 
 internal ref partial struct JsonRpcWriter
 {
-    public ref partial struct MessageBuilder
+    public ref partial struct MessageBuilder(Bridge bridge, HybridWriter writer)
     {
         public ParamsBuilder Method(string method)
         {

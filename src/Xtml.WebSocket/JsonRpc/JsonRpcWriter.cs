@@ -13,7 +13,10 @@ internal ref partial struct JsonRpcWriter
     {
         public bool IsBatching { get; set; } = false;
     }
-    public static MessageBuilder Batch(Bridge bridge)
+    
+    public static MessageBuilder Batch(Bridge bridge) => new(bridge, GetWriter());
+
+    private static HybridWriter GetWriter()
     {
         if (t_current == null)
         {
@@ -23,35 +26,35 @@ internal ref partial struct JsonRpcWriter
             // https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/character-encoding
             t_current = new HybridWriter(utf8JsonWriter, bufferWriter);
         }
-        
+
         var writer = t_current;
         if (writer.Utf8Json.BytesCommitted + writer.Utf8Json.BytesPending == 0)
             writer.Utf8Json.WriteStartArray();
-        return new MessageBuilder(bridge, writer);
+
+        return t_current;
     }
 
-    public ref partial struct MessageBuilder(Bridge bridge, HybridWriter writer)
+    public static void FlushOnAwait(Bridge bridge)
     {
-        public void FlushOnAwait()
-        {
-            writer.IsBatching = true;
-            // TODO: SyncCtx allocates memory.  Is it moot to optimize this code path since async will likely allocate regardless?
-            SynchronizationContext.SetSynchronizationContext(new SyncCtx(bridge));
-        }
+        var writer = GetWriter();
+        writer.IsBatching = true;
+        // TODO: SyncCtx allocates memory.  Is it moot to optimize this code path since async will likely allocate regardless?
+        SynchronizationContext.SetSynchronizationContext(new SyncCtx(bridge));
+    }
 
-        public FlushDisposable FlushOnDispose()
-        {
-            writer.IsBatching = true;
-            return new FlushDisposable(bridge, writer);
-        }
+    public static FlushDisposable FlushOnDispose(Bridge bridge)
+    {
+        var writer = GetWriter();
+        writer.IsBatching = true;
+        return new FlushDisposable(bridge, writer);
+    }
 
-        // Intentionally a ref struct here so it cannot be used across an await boundary.
-        public ref struct FlushDisposable(Bridge bridge, HybridWriter writer) : IDisposable
+    // Intentionally a ref struct here so it cannot be used across an await boundary.
+    public ref struct FlushDisposable(Bridge bridge, HybridWriter writer) : IDisposable
+    {
+        public void Dispose()
         {
-            public void Dispose()
-            {
-                Flush(bridge, writer);
-            }
+            Flush(bridge, writer);
         }
     }
 

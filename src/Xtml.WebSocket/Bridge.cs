@@ -80,7 +80,7 @@ internal partial class Bridge : SynchronizationContext
     {
         HotReload.UpdateApplicationEvent += updatedTypes =>
         {
-            foreach (var bridge in _windows.Values)
+            foreach (var bridge in s_bridges.Values)
             {
                 bridge.Invalidate();
                 bridge.Reconcile();

@@ -189,13 +189,14 @@ internal partial class Bridge : SynchronizationContext
             var rpc = new JsonRpcReader(message);
             shouldReturnToPool = rpc switch
             {
-                _ when rpc.Method.Length > 0 => 
-                    ProcessMethod(rpc, message),
-                _ when rpc.Result.Length > 0 && rpc.IdAsGuid is Guid resultId => 
-                    ProcessResult(rpc, resultId),
-                _ when rpc.Error.Length > 0 => 
-                    ProcessError(rpc),
-                _ => throw new InvalidOperationException($"Unexpected message format: {Encoding.UTF8.GetString(message.ToArray())}")
+                _ when rpc.Method.Length > 0
+                    => ProcessRequestMessage(rpc, message),
+                _ when rpc.Result.Length > 0 && rpc.IdAsGuid is Guid id
+                    => ProcessResponseMessage(rpc, id),
+                _ when rpc.Error.Length > 0
+                    => ProcessErrorMessage(rpc),
+                _ 
+                    => throw new InvalidOperationException($"Unexpected message format: {Encoding.UTF8.GetString(message.ToArray())}")
             };
         }
         catch (Exception ex)
@@ -208,7 +209,8 @@ internal partial class Bridge : SynchronizationContext
                 message.ReturnToPool();
         }
     }
-    private bool ProcessMethod(in JsonRpcReader rpc, ReadOnlySequence<byte> message)
+
+    private bool ProcessRequestMessage(in JsonRpcReader rpc, ReadOnlySequence<byte> message)
     {
         switch (rpc.Method)
         {
@@ -227,7 +229,7 @@ internal partial class Bridge : SynchronizationContext
                 break;
 
             case var method when method.EndsWith("dispatchEvent"u8):
-                ProcessEventListener(
+                InvokeEventListener(
                     key: GetKey(method),
                     @event: rpc.Params.GetNextAsEvent(message, Window, _propagation)
                 );
@@ -241,7 +243,41 @@ internal partial class Bridge : SynchronizationContext
         return true;
     }
 
-    private void ProcessEventListener(ReadOnlySpan<byte> key, EventProxy @event)
+    private bool ProcessResponseMessage(in JsonRpcReader rpc, Guid id)
+    {
+        if (_pendingRequests?.TryGetValue(id, out var taskCompletionSource) ?? false)
+        {
+            _pendingRequests.Remove(id);
+            var result = rpc.Result.ToArray(); // TODO: Allocates.  Use the SafeSpan?
+            switch (taskCompletionSource)
+            {
+                case TaskCompletionSource<string?> tcs:
+                    var isNull = result.SequenceEqual("null"u8);
+                    tcs.SetResult(isNull
+                        ? null
+                        : Encoding.UTF8.GetString(result.AsSpan(1..^1))); // Strip surrounding quotes
+                    break;
+                case TaskCompletionSource<int> tcs:
+                    tcs.SetResult(int.Parse(result));
+                    break;
+                case TaskCompletionSource<double> tcs:
+                    tcs.SetResult(double.Parse(result));
+                    break;
+            }
+        }
+        else
+        {
+            _logger.LogError("No pending request found for result with ID: {Id}", id);
+        }
+        return true;
+    }
+
+    private bool ProcessErrorMessage(in JsonRpcReader rpc)
+    {
+        return true;
+    }
+
+    private void InvokeEventListener(ReadOnlySpan<byte> key, EventProxy @event)
     {
         // Do not handle this event if `stopPropagation()` or `stopImmediatePropagation()`
         // has previously been called on the browser's same event instance.
@@ -280,37 +316,6 @@ internal partial class Bridge : SynchronizationContext
         // Return early to skip `message.ReturnToPool()` below.  
         // @event may need to survive beyond this point in async flows.
         return;
-    }
-
-    private bool ProcessResult(in JsonRpcReader rpc, Guid resultId)
-    {
-        if (_pendingRequests != null && _pendingRequests.TryGetValue(resultId, out var tcs))
-        {
-            _pendingRequests.Remove(resultId);
-            switch (tcs)
-            {
-                case TaskCompletionSource<string?> tcsOfString:
-                    var result = rpc.Result.ToArray();
-                    if (result.SequenceEqual("null"u8))
-                        tcsOfString.SetResult(null);
-                    else
-                        tcsOfString.SetResult(Encoding.UTF8.GetString(result.AsSpan(1..^1))); // Strip surrounding quotes
-                    break;
-                // TODO: Support other types...
-            }
-        }
-        else
-        {
-            // TODO: Handle missing task?
-        }
-
-        // TODO: Handle errors, timeouts, etc.
-        return true;
-    }
-
-    private bool ProcessError(in JsonRpcReader rpc)
-    {
-        return true;
     }
 
     private async Task WebSocketWrite(SystemWebSocket webSocket, CancellationToken cancel = default)
@@ -356,6 +361,9 @@ internal partial class Bridge : SynchronizationContext
 
     public Task<T> RegisterRequest<T>(Guid id)
     {
+        if (_pendingRequests?.Count >= 1000)
+            throw new InvalidOperationException("Too many pending requests (1000).");
+
         var tcs = new TaskCompletionSource<T>();
         var pendingRequests = _pendingRequests ??= [];
         pendingRequests[id] = tcs;

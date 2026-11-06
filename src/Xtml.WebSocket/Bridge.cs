@@ -16,7 +16,7 @@ using Xtml.WebSocket.Dom;
 
 namespace Xtml.WebSocket;
 
-internal partial class Bridge : SynchronizationContext
+internal partial class Bridge
 {
     private readonly static ConcurrentDictionary<Guid, Bridge> s_bridges = [];
     private readonly Func<Html> _template;
@@ -159,26 +159,6 @@ internal partial class Bridge : SynchronizationContext
                     await Task.Delay(timeRemaining, cancel);
             }
         }
-    }
-
-    private record struct StateHolder(SendOrPostCallback Callback, object? State, Bridge Bridge);
-
-    public override void Post(SendOrPostCallback callback, object? state)
-    {
-        ThreadPool.QueueUserWorkItem<StateHolder>(
-            callBack: static stateHolder => {
-                // Set it again because AspNetWebSocket uses ConfigureAwait(false)
-                SetSynchronizationContext(stateHolder.Bridge);
-
-                // Just like in EventLoop(), set this to flush just before yielding this thread back to the pool.
-                using var _ = JsonRpcWriter.Batch(stateHolder.Bridge).FlushOnDispose();
-
-                // The awaiting is done.  Execute what comes after the `await`.
-                stateHolder.Callback(stateHolder.State);
-            },
-            state: new StateHolder(callback, state, this),
-            preferLocal: false
-        );
     }
 
     private void ProcessMessage(ReadOnlySequence<byte> message)

@@ -35,7 +35,8 @@ internal ref partial struct JsonRpcWriter
         public void FlushOnAwait()
         {
             writer.IsBatching = true;
-            SynchronizationContext.SetSynchronizationContext(bridge);
+            // TODO: SyncCtx allocates memory.  Is it moot to optimize this code path since async will likely allocate regardless?
+            SynchronizationContext.SetSynchronizationContext(new SyncCtx(bridge));
         }
 
         public FlushDisposable FlushOnDispose()

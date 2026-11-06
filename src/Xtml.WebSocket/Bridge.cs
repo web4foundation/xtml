@@ -176,11 +176,7 @@ internal partial class Bridge : SynchronizationContext
                 // The awaiting is done.  Execute what comes after the `await`.
                 stateHolder.Callback(stateHolder.State);
             },
-            state: new StateHolder(
-                Callback: callback, 
-                State: state, 
-                Bridge: this
-            ),
+            state: new StateHolder(callback, state, this),
             preferLocal: false
         );
     }

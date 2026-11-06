@@ -18,7 +18,7 @@ namespace Xtml.WebSocket;
 
 internal partial class Bridge : SynchronizationContext
 {
-    private readonly static ConcurrentDictionary<Guid, Bridge> _windows = [];
+    private readonly static ConcurrentDictionary<Guid, Bridge> s_bridges = [];
     private readonly Func<Html> _template;
     private readonly ILogger _logger;
     private readonly Propagation _propagation = new();
@@ -34,8 +34,8 @@ internal partial class Bridge : SynchronizationContext
     
     private Bridge(Guid windowId, Func<Html> template, List<EventListener> listeners, ILogger logger)
     {
-        _windows[windowId] = this;
         WindowId = windowId;
+        s_bridges[windowId] = this;
         _template = template;
         RootEventListeners = listeners;
         _logger = logger;
@@ -109,7 +109,7 @@ internal partial class Bridge : SynchronizationContext
 
         logger.LogInformation("👋 Goodbye, {WindowId}!", windowId);
 
-        _windows.Remove(windowId, out var _);
+        s_bridges.Remove(windowId, out var _);
     }
     
     private async Task WebSocketRead(SystemWebSocket webSocket, CancellationToken cancel = default)

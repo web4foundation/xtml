@@ -13,7 +13,7 @@ internal ref partial struct JsonRpcWriter
     {
         public bool IsBatching { get; set; } = false;
     }
-    
+
     public static MessageBuilder Batch(Bridge bridge) => new(bridge, GetWriter());
 
     private static HybridWriter GetWriter()
@@ -31,7 +31,7 @@ internal ref partial struct JsonRpcWriter
         if (writer.Utf8Json.BytesCommitted + writer.Utf8Json.BytesPending == 0)
             writer.Utf8Json.WriteStartArray();
 
-        return t_current;
+        return writer;
     }
 
     public static void FlushOnAwait(Bridge bridge)

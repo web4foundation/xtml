@@ -126,7 +126,7 @@ internal partial class Bridge
         }
         catch (WebSocketException wex)
         {
-            _logger.LogError(wex, "WebSocket error occurred.");
+            _logger.LogInformation(wex, "WebSocket exception occurred.");
         }
         catch (Exception ex)
         {

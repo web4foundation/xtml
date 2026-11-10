@@ -10,7 +10,7 @@ internal partial struct JsonRpcWriter
         {
             ThreadPool.QueueUserWorkItem<StateHolder>(
                 callBack: static stateHolder => {
-                    if (stateHolder.Bridge.CallbackAsyncOnEventLoop)
+                    if (stateHolder.Bridge.ForceSequentialAsync)
                     {
                         stateHolder.Bridge.PostToEventLoop(stateHolder.Callback, stateHolder.State);
                     }

@@ -2,7 +2,7 @@ namespace Xtml.WebSocket.JsonRpc;
 
 internal partial struct JsonRpcWriter
 {
-    public class SyncCtx(Bridge bridge) : SynchronizationContext
+    private class SyncCtx(Bridge bridge) : SynchronizationContext
     {
         private record struct StateHolder(SendOrPostCallback Callback, object? State, Bridge Bridge, SyncCtx SyncCtx);
 

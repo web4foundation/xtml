@@ -145,7 +145,7 @@ internal partial class Bridge
     {
         while (await _eventLoopChannel.Reader.WaitToReadAsync(cancel))
         {
-            using var flusher = JsonRpcWriter.FlushOnDispose(this);
+            using var _ = JsonRpcWriter.FlushOnDispose(this);
 
             while (_eventLoopChannel.Reader.TryRead(out var work))
             {
@@ -155,20 +155,8 @@ internal partial class Bridge
                 }
                 else if (work.Callback is SendOrPostCallback callback)
                 {
-                    var previous = SynchronizationContext.Current;
-                    try
-                    {
-                        // TODO: This must move into JsonRpcWriter.SyncCtx
-                        SynchronizationContext.SetSynchronizationContext(new JsonRpcWriter.SyncCtx(this));
-                        callback(work.State);
-                    }
-                    finally
-                    {
-                        SynchronizationContext.SetSynchronizationContext(previous);
-                    }
-                }
-                else
-                {
+                    using var __ = JsonRpcWriter.FlushOnAwait(this);
+                    callback(work.State);
                 }
             }
         }

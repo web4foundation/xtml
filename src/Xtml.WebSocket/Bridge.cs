@@ -31,7 +31,7 @@ internal partial class Bridge
     public Guid WindowId { get; init; }
     public List<EventListener> RootEventListeners { get; init; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromMilliseconds(1000d / 60d); // 60fps
-    public bool CallbackAsyncOnEventLoop { get; set; } = true;
+    public bool CallbackAsyncOnEventLoop { get; set; } = false;
     
     private record struct JsonRpcMessageOrAsyncCallback(
         ReadOnlySequence<byte>? Message,

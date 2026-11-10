@@ -64,10 +64,7 @@ internal ref partial struct JsonRpcWriter
     // Intentionally a ref struct here so it cannot be used across an await boundary.
     public ref struct FlushDisposable(Bridge bridge, HybridWriter writer) : IDisposable
     {
-        public void Dispose()
-        {
-            Flush(bridge, writer);
-        }
+        public void Dispose() => Flush(bridge, writer);
     }
 
     private static void Flush(Bridge bridge, HybridWriter writer)

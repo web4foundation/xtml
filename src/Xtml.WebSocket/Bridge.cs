@@ -136,7 +136,6 @@ internal partial class Bridge
 
     private async Task EventLoop(CancellationToken cancel = default)
     {
-        var lastRun = Stopwatch.StartNew();
         while (await _eventLoopChannel.Reader.WaitToReadAsync(cancel))
         {
             lastRun.Restart();
@@ -146,17 +145,7 @@ internal partial class Bridge
                     ProcessMessage(message);
             }
 
-            // Debounce! 
-            // If the last batch was less than 16ms ago (60 fps), wait until the "next frame"
-            // (i.e. no need to update the DOM more frequently than the screen's own refresh rate).
-            // There could be potentially millions of state changes every 16ms
-            // and it'd be wasteful to calculate diffs or send mutations for each
-            // when most screens can only handle 60-144 Hz.
-            if (RefreshRate > TimeSpan.Zero)
             {
-                var timeRemaining = RefreshRate - lastRun.Elapsed;
-                if (timeRemaining > TimeSpan.Zero)
-                    await Task.Delay(timeRemaining, cancel);
             }
         }
     }

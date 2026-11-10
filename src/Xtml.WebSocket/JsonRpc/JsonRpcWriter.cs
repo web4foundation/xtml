@@ -38,6 +38,7 @@ internal ref partial struct JsonRpcWriter
     {
         var writer = GetWriter();
         writer.IsBatching = true;
+
         // TODO: SyncCtx allocates memory.  Is it moot to optimize this code path since async will likely allocate regardless?
         SynchronizationContext.SetSynchronizationContext(new SyncCtx(bridge));
     }

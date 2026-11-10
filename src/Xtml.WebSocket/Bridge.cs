@@ -333,13 +333,13 @@ internal partial class Bridge
         }
     }
 
-    public void Flush(ReadOnlySequence<byte> output)
+    public void FlushToWebSocket(ReadOnlySequence<byte> output)
     {
         if (!_outputChannel.Writer.TryWrite(output))
             throw new InvalidOperationException("Failed to write to output channel."); // TODO: How to fail?
     }
 
-    public Task<T> RegisterRequest<T>(Guid id)
+    public Task<T> AwaitResult<T>(Guid id)
     {
         if (_pendingRequests?.Count >= 1000)
             throw new InvalidOperationException("Too many pending requests (1000).");
@@ -348,6 +348,12 @@ internal partial class Bridge
         var pendingRequests = _pendingRequests ??= [];
         pendingRequests[id] = tcs;
         return tcs.Task;
+    }
+
+    public void PostToEventLoop(SendOrPostCallback callback, object? state)
+    {
+        if (!_eventLoopChannel.Writer.TryWrite(new(null, callback, state)))
+            throw new InvalidOperationException("Failed to write to the event loop channel.");
     }
 
     private static ReadOnlySpan<byte> GetKey(ReadOnlySpan<byte> method)

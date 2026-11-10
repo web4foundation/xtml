@@ -73,6 +73,6 @@ internal ref partial struct JsonRpcWriter
         writer.Utf8Json.Reset();
         writer.IsBatching = false;
 
-        bridge.Flush(output);
+        bridge.FlushToWebSocket(output);
     }
 }

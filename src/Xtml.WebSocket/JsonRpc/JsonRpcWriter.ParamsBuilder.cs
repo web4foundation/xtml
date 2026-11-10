@@ -83,7 +83,7 @@ internal ref partial struct JsonRpcWriter
             TryEndParamsArray();
 
             var id = Guid.NewGuid();
-            var task = bridge.RegisterRequest<T>(id);
+            var task = bridge.AwaitResult<T>(id);
 
             writer.Utf8Json.WriteString("id", id);
             writer.Utf8Json.WriteEndObject();

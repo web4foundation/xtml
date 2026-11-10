@@ -24,8 +24,8 @@ internal partial class Bridge
     private readonly Propagation _propagation = new();
     private bool _isInvalidated;
     private Keyhole[] _snapshot;
-    private Channel<ReadOnlySequence<byte>> _eventLoopChannel;
-    private Channel<ReadOnlySequence<byte>> _outputChannel;
+    private readonly Channel<JsonRpcMessageOrAsyncCallback> _eventLoopChannel;
+    private readonly Channel<ReadOnlySequence<byte>> _outputChannel;
     private Dictionary<Guid, object>? _pendingRequests = null;
 
     public Guid WindowId { get; init; }
@@ -42,7 +42,7 @@ internal partial class Bridge
         _isInvalidated = false;
         _snapshot = CaptureSnapshot(); // TODO: Should this be passed in as an arg from the byproduct of HtmlKeyComposer?
 
-        _eventLoopChannel = Channel.CreateBounded<ReadOnlySequence<byte>>(
+        _eventLoopChannel = Channel.CreateBounded<JsonRpcMessageOrAsyncCallback>(
             options: new(1000) // TODO: Make this limit configurable?
             {
                 AllowSynchronousContinuations = true,
@@ -50,7 +50,7 @@ internal partial class Bridge
                 SingleReader = true,
                 SingleWriter = false,
             },
-            itemDropped: sequence =>
+            itemDropped: messageOrCallback =>
             {
                 // TODO: Handle:
                 // - Send error to the browser.
@@ -121,7 +121,7 @@ internal partial class Bridge
                 var (result, message) = await webSocket.ReceiveAsync(cancel);
                 if (result.MessageType == WebSocketMessageType.Close)
                     break;
-                await _eventLoopChannel.Writer.WriteAsync(message, cancel);
+                await _eventLoopChannel.Writer.WriteAsync(new(message, null, null), cancel);
             }
         }
         catch (WebSocketException wex)
@@ -138,14 +138,31 @@ internal partial class Bridge
     {
         while (await _eventLoopChannel.Reader.WaitToReadAsync(cancel))
         {
-            lastRun.Restart();
-            using (var flusher = JsonRpcWriter.FlushOnDispose(this))
-            {
-                while (_eventLoopChannel.Reader.TryRead(out var message))
-                    ProcessMessage(message);
-            }
+            using var flusher = JsonRpcWriter.FlushOnDispose(this);
 
+            while (_eventLoopChannel.Reader.TryRead(out var work))
             {
+                if (work.Message is ReadOnlySequence<byte> message)
+                {
+                    ProcessMessage(message);
+                }
+                else if (work.Callback is SendOrPostCallback callback)
+                {
+                    var previous = SynchronizationContext.Current;
+                    try
+                    {
+                        // TODO: This must move into JsonRpcWriter.SyncCtx
+                        SynchronizationContext.SetSynchronizationContext(new JsonRpcWriter.SyncCtx(this));
+                        callback(work.State);
+                    }
+                    finally
+                    {
+                        SynchronizationContext.SetSynchronizationContext(previous);
+                    }
+                }
+                else
+                {
+                }
             }
         }
     }

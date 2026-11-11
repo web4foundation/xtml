@@ -10,32 +10,27 @@ internal class PooledSequenceBufferWriter<T> : IBufferWriter<T>
     private SequenceSegment<T>? _segmentStart;
     private SequenceSegment<T>? _segmentEnd;
 
-    public ReadOnlySequence<T> Sequence
+    public ReadOnlySequence<T> GetSequenceAndReset()
     {
-        get
+        var sequence = this switch
         {
-            var sequence = this switch
-            {
-                // Never written to
-                _ when _currentBuffer is null => ReadOnlySequence<T>.Empty,
+            // Never written to
+            _ when _currentBuffer is null => ReadOnlySequence<T>.Empty,
 
-                // Single-segment
-                _ when _segmentEnd is null => new ReadOnlySequence<T>(_currentBuffer, 0, _currentIndex),
+            // Single-segment
+            _ when _segmentEnd is null => new ReadOnlySequence<T>(_currentBuffer, 0, _currentIndex),
 
-                // Multi-segment
-                _ => new ReadOnlySequence<T>(_segmentStart!, 0, _segmentEnd.Append(_currentBuffer!, 0.._currentIndex), _currentIndex)
-            };
+            // Multi-segment
+            _ => new ReadOnlySequence<T>(_segmentStart!, 0, _segmentEnd.Append(_currentBuffer!, 0.._currentIndex), _currentIndex)
+        };
 
-            Reset();
+        Reset();
 
-            return sequence;
-        }
+        return sequence;
     }
-    public int WrittenCount { get; private set; }
 
     private void Reset()
     {
-        WrittenCount = 0;
         _currentBuffer = null;
         _currentIndex = 0;
         _segmentStart = null;
@@ -45,7 +40,6 @@ internal class PooledSequenceBufferWriter<T> : IBufferWriter<T>
     public void Advance(int count)
     {
         _currentIndex += count;
-        WrittenCount += count;
     }
 
     public Memory<T> GetMemory(int sizeHint = 0)

@@ -4,9 +4,9 @@ namespace Xtml.Runtime.Utilities;
 
 public static class Perf
 {
-    public static IDisposable Measure(string name = "unnamed") => new Disposer(name);
+    public static PerfDumper Measure(string name = "unnamed") => new(name);
 
-    private class Disposer(string name) : IDisposable
+    public struct PerfDumper(string name) : IDisposable
     {
         readonly long gc1 = GC.GetAllocatedBytesForCurrentThread();
         readonly long sw1 = Stopwatch.GetTimestamp();

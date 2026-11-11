@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace Xtml.WebSocket.JsonRpc;
 
@@ -74,8 +75,8 @@ internal ref partial struct JsonRpcWriter
             TryEndParamsArray();
 
             writer.Utf8Json.WriteEndObject();
-            if (!writer.IsBatching)
-                Flush(bridge, writer);
+
+            CourtesyFlush(bridge, writer);
         }
 
         public Task<T> AsRequest<T>()
@@ -88,8 +89,7 @@ internal ref partial struct JsonRpcWriter
             writer.Utf8Json.WriteString("id", id);
             writer.Utf8Json.WriteEndObject();
 
-            if (!writer.IsBatching)
-                Flush(bridge, writer);
+            CourtesyFlush(bridge, writer);
 
             return task;
         }

@@ -14,8 +14,7 @@ internal ref partial struct JsonRpcWriter
             writer.Utf8Json.WriteEndObject();
             writer.Utf8Json.WriteEndObject();
             
-            if (!writer.IsBatching)
-                Flush(bridge, writer);
+            CourtesyFlush(bridge, writer);
         }
     }
 }

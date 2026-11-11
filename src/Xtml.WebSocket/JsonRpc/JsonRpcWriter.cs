@@ -1,5 +1,6 @@
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Diagnostics;
 using Xtml.WebSocket.Buffers;
 
 namespace Xtml.WebSocket.JsonRpc;
@@ -11,9 +12,16 @@ internal ref partial struct JsonRpcWriter
     public record HybridWriter(Utf8JsonWriter Utf8Json, PooledSequenceBufferWriter<byte> Buffer)
     {
         public bool IsBatching { get; set; } = false;
+        public Stopwatch LastFlush { get; set; } = Stopwatch.StartNew();
     }
 
-    public static MessageBuilder Batch(Bridge bridge) => new(bridge, GetWriter());
+    public static MessageBuilder Batch(Bridge bridge)
+    {
+        var writer = GetWriter();
+        if (writer.Utf8Json.BytesCommitted + writer.Utf8Json.BytesPending == 0)
+            writer.Utf8Json.WriteStartArray();
+        return new(bridge, writer);
+    }
 
     private static HybridWriter GetWriter()
     {
@@ -25,49 +33,51 @@ internal ref partial struct JsonRpcWriter
             // https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/character-encoding
             t_current = new HybridWriter(utf8JsonWriter, bufferWriter);
         }
-
-        var writer = t_current;
-        if (writer.Utf8Json.BytesCommitted + writer.Utf8Json.BytesPending == 0)
-            writer.Utf8Json.WriteStartArray();
-
-        return writer;
+        return t_current;
     }
 
     public static FlushDisposable FlushOnDispose(Bridge bridge)
     {
         var writer = GetWriter();
         writer.IsBatching = true;
+        writer.LastFlush.Restart();
         return new FlushDisposable(bridge, writer);
     }
 
     public static ResetSynchronizationContextDisposable FlushOnAwait(Bridge bridge)
     {
-        var writer = GetWriter();
-        writer.IsBatching = true;
-
         var flusher = new ResetSynchronizationContextDisposable(SynchronizationContext.Current);
-
-        // TODO: SyncCtx allocates memory.  Is it moot to optimize this code path since async will likely allocate regardless?
-        SynchronizationContext.SetSynchronizationContext(new SyncCtx(bridge));
-
+        SynchronizationContext.SetSynchronizationContext(new SyncCtx(bridge)); // Allocation, but moot because async
         return flusher;
     }
 
     private static void Flush(Bridge bridge, HybridWriter writer)
     {
-        bridge.Reconcile();
-
         if (writer.Utf8Json.BytesCommitted == 0 && writer.Utf8Json.BytesPending <= 1) // i.e. the `[`
-            return;
+            return; // TODO: Verify how frequent this is.  I do know it happens for every async event listener.  Anywhere else?
         
         writer.Utf8Json.WriteEndArray();
         writer.Utf8Json.Flush();
 
         var output = writer.Buffer.GetSequenceAndReset();
         writer.Utf8Json.Reset();
-        
-        writer.IsBatching = false;
 
         bridge.FlushToWebSocket(output);
+    }
+
+    private static void CourtesyFlush(Bridge bridge, HybridWriter writer)
+    {
+        if (!writer.IsBatching)
+        {
+            Flush(bridge, writer);
+            return;
+        }
+
+        if (writer.LastFlush.Elapsed > bridge.RefreshRate)
+        {
+            Flush(bridge, writer);
+            writer.LastFlush.Restart();
+            return;
+        }
     }
 }

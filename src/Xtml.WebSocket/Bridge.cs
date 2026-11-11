@@ -22,7 +22,6 @@ internal partial class Bridge
     private readonly Func<Html> _template;
     private readonly ILogger _logger;
     private readonly Propagation _propagation = new();
-    private bool _isInvalidated;
     private Keyhole[] _snapshot;
     private readonly Channel<JsonRpcMessageOrAsyncCallback> _eventLoopChannel;
     private readonly Channel<ReadOnlySequence<byte>> _outputChannel;
@@ -46,7 +45,6 @@ internal partial class Bridge
         _template = template;
         RootEventListeners = listeners;
         _logger = logger;
-        _isInvalidated = false;
         _snapshot = CaptureSnapshot(); // TODO: Should this be passed in as an arg from the byproduct of HtmlKeyComposer?
 
         _eventLoopChannel = Channel.CreateBounded<JsonRpcMessageOrAsyncCallback>(
@@ -89,7 +87,6 @@ internal partial class Bridge
         {
             foreach (var bridge in s_bridges.Values)
             {
-                bridge.Invalidate();
                 bridge.Reconcile();
             }
         };
@@ -383,16 +380,8 @@ internal partial class Bridge
         };
     }
 
-    public void Invalidate()
-    {
-        _isInvalidated = true;
-    }
-
     public void Reconcile()
     {
-        if (!_isInvalidated)
-            return;
-
         try
         {
             Keyhole[] oldBuffer = _snapshot;
@@ -407,8 +396,6 @@ internal partial class Bridge
         {
             _logger.LogError(ex, "Unexpected error reconciling diffs: {Message}", ex.Message);
         }
-
-        _isInvalidated = false;
     }
 
     private Keyhole[] CaptureSnapshot()

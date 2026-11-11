@@ -146,7 +146,6 @@ internal partial class Bridge
         while (await _eventLoopChannel.Reader.WaitToReadAsync(cancel))
         {
             using var _ = JsonRpcWriter.FlushOnDispose(this);
-
             while (_eventLoopChannel.Reader.TryRead(out var work))
             {
                 if (work.Message is ReadOnlySequence<byte> message)

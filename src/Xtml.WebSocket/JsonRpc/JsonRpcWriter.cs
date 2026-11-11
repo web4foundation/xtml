@@ -64,8 +64,9 @@ internal ref partial struct JsonRpcWriter
         writer.Utf8Json.WriteEndArray();
         writer.Utf8Json.Flush();
 
-        var output = writer.Buffer.Sequence;
+        var output = writer.Buffer.GetSequenceAndReset();
         writer.Utf8Json.Reset();
+        
         writer.IsBatching = false;
 
         bridge.FlushToWebSocket(output);

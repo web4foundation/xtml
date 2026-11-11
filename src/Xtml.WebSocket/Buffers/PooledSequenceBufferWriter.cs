@@ -9,6 +9,7 @@ internal class PooledSequenceBufferWriter<T> : IBufferWriter<T>
     private int _currentIndex;
     private SequenceSegment<T>? _segmentStart;
     private SequenceSegment<T>? _segmentEnd;
+    public int WrittenCount { get; private set; }
 
     public ReadOnlySequence<T> GetSequenceAndReset()
     {
@@ -31,6 +32,7 @@ internal class PooledSequenceBufferWriter<T> : IBufferWriter<T>
 
     private void Reset()
     {
+        WrittenCount = 0;
         _currentBuffer = null;
         _currentIndex = 0;
         _segmentStart = null;
@@ -40,6 +42,7 @@ internal class PooledSequenceBufferWriter<T> : IBufferWriter<T>
     public void Advance(int count)
     {
         _currentIndex += count;
+        WrittenCount += count;
     }
 
     public Memory<T> GetMemory(int sizeHint = 0)

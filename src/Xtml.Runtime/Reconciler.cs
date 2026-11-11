@@ -8,13 +8,13 @@ public ref struct Reconciler(IRpcClient mutator, Keyhole[] oldBuffer, Keyhole[] 
 
     public static void Diff(IRpcClient mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
     {
-        using var perf = Perf.Measure("DiffUtil.Diff"); // TODO: Remove PerfCheck
+        using var perf = Perf.Measure("Reconciler.Diff"); // TODO: Remove PerfCheck
 
         ref Keyhole oldFirst = ref oldBuffer[0];
         ref Keyhole newFirst = ref newBuffer[0];
 
-        var diffUtil = new Reconciler(mutator, oldBuffer, newBuffer);
-        diffUtil.Recurse(ref oldFirst, ref newFirst);
+        var reconciler = new Reconciler(mutator, oldBuffer, newBuffer);
+        reconciler.Recurse(ref oldFirst, ref newFirst);
     }
 
     private readonly bool Recurse(ref Keyhole oldParent, ref Keyhole newParent)

@@ -33,6 +33,13 @@ internal ref partial struct JsonRpcWriter
         return writer;
     }
 
+    public static FlushDisposable FlushOnDispose(Bridge bridge)
+    {
+        var writer = GetWriter();
+        writer.IsBatching = true;
+        return new FlushDisposable(bridge, writer);
+    }
+
     public static ResetSynchronizationContextDisposable FlushOnAwait(Bridge bridge)
     {
         var writer = GetWriter();
@@ -44,13 +51,6 @@ internal ref partial struct JsonRpcWriter
         SynchronizationContext.SetSynchronizationContext(new SyncCtx(bridge));
 
         return flusher;
-    }
-
-    public static FlushDisposable FlushOnDispose(Bridge bridge)
-    {
-        var writer = GetWriter();
-        writer.IsBatching = true;
-        return new FlushDisposable(bridge, writer);
     }
 
     private static void Flush(Bridge bridge, HybridWriter writer)

@@ -26,6 +26,7 @@ internal partial class Bridge
     private readonly Channel<JsonRpcMessageOrAsyncCallback> _eventLoopChannel;
     private readonly Channel<ReadOnlySequence<byte>> _outputChannel;
     private Dictionary<Guid, object>? _pendingRequests = null;
+    private Stopwatch _lastReconcile = Stopwatch.StartNew();
 
     public Guid WindowId { get; init; }
     public List<EventListener> RootEventListeners { get; init; }
@@ -154,6 +155,9 @@ internal partial class Bridge
                     using var __ = JsonRpcWriter.FlushOnAwait(this);
                     callback(work.State);
                 }
+
+                // Opportunistic reconciliation, so the reconciler doesn't starve when the even loop gets backed up.
+                Reconcile(debounce: true);
             }
         }
     }
@@ -380,8 +384,11 @@ internal partial class Bridge
         };
     }
 
-    public void Reconcile()
+    public void Reconcile(bool debounce = false)
     {
+        if (debounce && _lastReconcile.Elapsed < RefreshRate)
+            return;
+
         try
         {
             Keyhole[] oldBuffer = _snapshot;
@@ -391,6 +398,7 @@ internal partial class Bridge
             // Keep this snapshot buffer around to use as the "before" next time.
             _snapshot = newBuffer;
             ArrayPool<Keyhole>.Shared.Return(oldBuffer);
+            _lastReconcile.Restart();
         }
         catch (Exception ex)
         {

@@ -12,9 +12,11 @@ internal ref partial struct JsonRpcWriter
     {
         public void Dispose()
         {
+            // Do not debounce the Reconciler here.  
+            // The batch is over and the next event listener could be many dozens of milliseconds away.
             bridge.Reconcile();
             Flush(bridge, writer);
-            
+
             writer.IsBatching = false;
             writer.LastFlush.Reset();
         }

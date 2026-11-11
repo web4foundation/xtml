@@ -48,10 +48,7 @@ internal ref partial struct JsonRpcWriter
 
     public struct ResetSynchronizationContextDisposable(SynchronizationContext? previous) : IDisposable
     {
-        public void Dispose()
-        {
-            SynchronizationContext.SetSynchronizationContext(previous);
-        }
+        public void Dispose() => SynchronizationContext.SetSynchronizationContext(previous);
     }
 
     public static FlushDisposable FlushOnDispose(Bridge bridge)

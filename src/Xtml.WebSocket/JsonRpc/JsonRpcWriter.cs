@@ -46,22 +46,11 @@ internal ref partial struct JsonRpcWriter
         return flusher;
     }
 
-    public struct ResetSynchronizationContextDisposable(SynchronizationContext? previous) : IDisposable
-    {
-        public void Dispose() => SynchronizationContext.SetSynchronizationContext(previous);
-    }
-
     public static FlushDisposable FlushOnDispose(Bridge bridge)
     {
         var writer = GetWriter();
         writer.IsBatching = true;
         return new FlushDisposable(bridge, writer);
-    }
-
-    // Intentionally a ref struct here so it cannot be used across an await boundary.
-    public ref struct FlushDisposable(Bridge bridge, HybridWriter writer) : IDisposable
-    {
-        public void Dispose() => Flush(bridge, writer);
     }
 
     private static void Flush(Bridge bridge, HybridWriter writer)

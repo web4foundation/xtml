@@ -7,6 +7,9 @@ namespace Xtml.WebSocket.JsonRpc;
 
 internal ref partial struct JsonRpcWriter
 {
+    // TODO: Make this configurable?
+    private const int COURTESY_FLUSH_THRESHOLD = 2 << 15; // 64k
+
     [ThreadStatic]
     private static HybridWriter? t_current;
     public record HybridWriter(Utf8JsonWriter Utf8Json, PooledSequenceBufferWriter<byte> Buffer)

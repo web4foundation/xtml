@@ -4,6 +4,7 @@ namespace Xtml.WebSocket.Buffers;
 
 internal class PooledSequenceBufferWriter<T> : IBufferWriter<T>
 {
+    // TODO: Make this configurable?
     private const int DEFAULT_BUFFER_SIZE = 16384;
     private T[]? _currentBuffer;
     private int _currentIndex;

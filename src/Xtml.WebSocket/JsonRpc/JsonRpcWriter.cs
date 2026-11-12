@@ -66,21 +66,17 @@ internal ref partial struct JsonRpcWriter
         writer.Utf8Json.Reset();
 
         bridge.FlushToWebSocket(output);
+
+        writer.LastFlush.Restart();
     }
 
     private static void CourtesyFlush(Bridge bridge, HybridWriter writer)
     {
-        if (!writer.IsBatching)
-        {
-            Flush(bridge, writer);
-            return;
-        }
+        bool isUnbatched = !writer.IsBatching;
+        bool tooSlow = writer.LastFlush.Elapsed > bridge.RefreshRate;
+        bool tooBig = writer.Utf8Json.BytesCommitted + writer.Utf8Json.BytesPending > COURTESY_FLUSH_THRESHOLD;
 
-        if (writer.LastFlush.Elapsed > bridge.RefreshRate)
-        {
+        if (isUnbatched || tooSlow || tooBig)
             Flush(bridge, writer);
-            writer.LastFlush.Restart();
-            return;
-        }
     }
 }

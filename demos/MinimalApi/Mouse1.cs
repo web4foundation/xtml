@@ -28,10 +28,11 @@ void OnClick()
     c++;
 }
 
-window.OnMouseMove = e =>
+// window.OnMouseMove = e =>
+window.AddEventListener("pointerrawupdate", e =>
 {
     x = e.X;
     y = e.Y;
-};
+});
 
 app.Run();

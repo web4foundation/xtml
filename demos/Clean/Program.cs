@@ -35,7 +35,7 @@ Html GetList() => $"""
             </lr>
         """):zoom-fade}
 
-        <button onpointerdown={ () => c++ }>Clicks: { c }</button>
+        <button onpointerdown={ () => c++ }>Clicks: {c:N0}</button>
         <button onpointerdown={ DoThingAsync }>Async</button>
         <button onpointerdown={ EditRandom }>Edit Random</button>
         <button onpointerdown={ Move1 }>Move 1</button>

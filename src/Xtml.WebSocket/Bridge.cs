@@ -305,20 +305,21 @@ internal partial class Bridge
         {
             try
             {
-                var output = await _outputChannel.Reader.ReadAsync(cancel);
-                var bytesRemaining = output.Length;
-                if (bytesRemaining == 0)
-                    continue;
+                var (output, reconcileRequest) = await _outputChannel.Reader.ReadAsync(cancel);
                 
-                foreach (ReadOnlyMemory<byte> buffer in output)
+                var bytesRemaining = output.Length;
+                if (bytesRemaining > 0)
                 {
-                    bytesRemaining -= buffer.Length;
-                    await webSocket.SendAsync(
-                        buffer: buffer,
-                        messageType: WebSocketMessageType.Text,
-                        endOfMessage: bytesRemaining == 0,
-                        cancellationToken: cancel
-                    );
+                    foreach (ReadOnlyMemory<byte> buffer in output)
+                    {
+                        bytesRemaining -= buffer.Length;
+                        await webSocket.SendAsync(
+                            buffer: buffer,
+                            messageType: WebSocketMessageType.Text,
+                            endOfMessage: bytesRemaining == 0,
+                            cancellationToken: cancel
+                        );
+                    }
                 }
 
                 output.ReturnToPool();

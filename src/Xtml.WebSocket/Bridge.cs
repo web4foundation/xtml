@@ -293,10 +293,6 @@ internal partial class Bridge
                 _logger.LogWarning("Event listener not found.  Possible race condition.");
                 break;
         }
-
-        // Return early to skip `message.ReturnToPool()` below.  
-        // @event may need to survive beyond this point in async flows.
-        return;
     }
 
     private async Task WebSocketWrite(SystemWebSocket webSocket, CancellationToken cancel = default)

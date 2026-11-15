@@ -12,6 +12,7 @@ internal static class WebSocketExtensions
         this System.Net.WebSockets.WebSocket webSocket, 
         CancellationToken cancel = default)
     {
+        // TODO: How to read without allocating a buffer for each connection?
         var buffer = ArrayPool<byte>.Shared.Rent(RECEIVE_BUFFER_LENGTH);
         var result = await webSocket.ReceiveAsync(buffer, cancel);
 
@@ -39,6 +40,27 @@ internal static class WebSocketExtensions
                 segmentEnd = segmentEnd.Append(buffer, 0..result.Count);
             }
             return (result, new ReadOnlySequence<byte>(segmentStart, 0, segmentEnd, result.Count));
+        }
+    }
+
+    internal static async Task SendAsync(
+        this System.Net.WebSockets.WebSocket webSocket, 
+        ReadOnlySequence<byte> output, 
+        CancellationToken cancel = default)
+    {
+        var bytesRemaining = output.Length;
+        if (bytesRemaining == 0)
+            return;
+
+        foreach (ReadOnlyMemory<byte> buffer in output)
+        {
+            bytesRemaining -= buffer.Length;
+            await webSocket.SendAsync(
+                buffer: buffer,
+                messageType: WebSocketMessageType.Text,
+                endOfMessage: bytesRemaining == 0,
+                cancellationToken: cancel
+            );
         }
     }
 }

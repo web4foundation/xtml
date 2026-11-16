@@ -22,7 +22,7 @@ public interface IConsole
     void Error(object value);
     void Error(object value, params Span<object> values);
     void Group();
-    void Group(object label);
+    void Group(string label);
     void GroupCollapsed();
     void GroupCollapsed(object label);
     void GroupCollapsed(string message, params Span<string> substitutions);

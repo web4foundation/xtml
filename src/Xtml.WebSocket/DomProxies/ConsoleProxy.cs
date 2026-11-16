@@ -72,7 +72,11 @@ internal partial class Bridge : IConsole
         .Batch(this)
         .Method("console.group")
         .AsNotification();
-    void IConsole.Group(object label) => throw new NotImplementedException();
+    void IConsole.Group(string label) => JsonRpcWriter
+        .Batch(this)
+        .Method("console.group")
+        .Param(label)
+        .AsNotification();
     void IConsole.GroupCollapsed() => JsonRpcWriter
         .Batch(this)
         .Method("console.groupCollapsed")

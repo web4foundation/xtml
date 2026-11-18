@@ -305,11 +305,6 @@ internal partial class Bridge
                 await webSocket.SendAsync(output, cancel);
                 output.ReturnToPool();
 
-                if (_isInvalidated)
-                {
-                    using var _ = JsonRpcWriter.FlushOnDispose(this);
-                    Reconcile();
-                }
             }
             catch (OperationCanceledException ex)
             {

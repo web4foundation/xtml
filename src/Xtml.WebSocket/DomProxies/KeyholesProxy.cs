@@ -170,7 +170,7 @@ internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
     {
         var stopwatch = LogMessageStarted("dump");
 
-        var buffer = CaptureSnapshot();
+        var buffer = _snapshot;//CaptureSnapshot();
         new KeyholeDumper(Console, buffer).Dump();
 
         LogMessageEnded("dump", stopwatch);

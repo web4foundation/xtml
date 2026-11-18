@@ -154,16 +154,11 @@ internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
     }
 
-    void IRpcServer.Ping(int requestId)
+    async Task<string> IRpcServer.Ping()
     {
         var stopwatch = LogMessageStarted("ping");
-
-        JsonRpcWriter
-            .Batch(this)
-            .Result("pong")
-            .AsResponse(requestId);
-
         LogMessageEnded("ping", stopwatch);
+        return "pong";
     }
 
     void IRpcServer.Dump()

@@ -206,7 +206,13 @@ internal partial class Bridge
                 break;
 
             case var method when method.SequenceEqual("keyholes.ping"u8) && rpc.IdAsInt is int id:
-                Keyholes.Ping(id);
+                Keyholes.Ping()
+                    .ContinueWith(t => JsonRpcWriter
+                        .Batch(this)
+                        .Result(t.Result)
+                        .AsResponse(id)
+                    );
+                    // TODO: This ^ captures and allocates.  Moot for all async?
                 break;
 
             case var method when method.EndsWith("dispatchEvent"u8):

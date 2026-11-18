@@ -61,6 +61,13 @@ public class SnapshotKeyComposer : BaseKeyComposer
         return true;
     }
 
+    public override bool OnTemplateEnd(ref Html html)
+    {
+        ref var keyhole = ref _buffer[0];
+        keyhole.WriteHead = _writeHead;
+        return true;
+    }
+
     public override bool OnMarkup(ref Html parent, ref string literal, int relativeOrder = -1)
     {
         base.OnMarkup(ref parent, ref literal, relativeOrder);

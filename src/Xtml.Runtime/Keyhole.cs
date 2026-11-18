@@ -64,6 +64,7 @@ public struct Keyhole
     // buffers by reusing one backing field across a number of properties that are only 
     // used depending on the keyhole type.
     public int RelativeOrder { get => _value2; set => _value2 = value; }
+    public int WriteHead { get => _value2; set => _value2 = value; }
 
     public static bool Equals(ref Keyhole left, ref Keyhole right)
         => left.Type == right.Type && left.Type switch

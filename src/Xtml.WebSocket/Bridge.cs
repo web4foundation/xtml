@@ -314,7 +314,6 @@ internal partial class Bridge
                 var output = await _outputChannel.Reader.ReadAsync(cancel);
                 await webSocket.SendAsync(output, cancel);
                 output.ReturnToPool();
-
             }
             catch (OperationCanceledException ex)
             {

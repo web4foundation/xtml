@@ -266,7 +266,7 @@ internal partial class Bridge
         return true;
     }
 
-    private void InvokeEventListener(ReadOnlySpan<byte> key, EventProxy @event)
+    private void InvokeEventListener(ReadOnlySpan<byte> key, in LazyEvent @event)
     {
         // Do not handle this event if `stopPropagation()` or `stopImmediatePropagation()`
         // has previously been called on the browser's same event instance.

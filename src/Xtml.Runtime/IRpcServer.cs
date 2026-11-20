@@ -2,7 +2,7 @@ using Xtml.Dom;
 
 namespace Xtml.Runtime;
 
-public interface IRpcServer
+public interface IKeyholesServer
 {
     void DispatchEvent(Action listener);
     void DispatchEvent<T>(Action<Event> listener, T @event) where T : struct, Event;

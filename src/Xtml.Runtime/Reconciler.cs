@@ -2,11 +2,11 @@ using Xtml.Runtime.Utilities;
 
 namespace Xtml.Runtime;
 
-public ref struct Reconciler(IRpcClient mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
+public ref struct Reconciler(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
 {
     public static readonly byte[] ROOT_KEY = "root"u8.ToArray();
 
-    public static void Diff(IRpcClient mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
+    public static void Diff(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
     {
         using var perf = Perf.Measure("Reconciler.Diff"); // TODO: Remove PerfCheck
 

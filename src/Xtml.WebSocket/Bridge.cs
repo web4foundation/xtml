@@ -193,20 +193,22 @@ internal partial class Bridge
 
     private bool ProcessRequestMessage(in JsonRpcReader rpc, ReadOnlySequence<byte> message)
     {
+        IKeyholesServer keyholes = this;
+
         switch (rpc.Method)
         {
             case var method when method.SequenceEqual("keyholes.dump"u8):
-                Keyholes.Dump();
+                keyholes.Dump();
                 break;
 
             case var method when method.SequenceEqual("keyholes.benchmark"u8):
-                Keyholes.Benchmark(
+                keyholes.Benchmark(
                     threads: rpc.Params.GetNextOptionalAsInt()
                 );
                 break;
 
             case var method when method.SequenceEqual("keyholes.ping"u8) && rpc.IdAsInt is int id:
-                Keyholes.Ping()
+                keyholes.Ping()
                     .ContinueWith(t => JsonRpcWriter
                         .Batch(this)
                         .Result(t.Result)
@@ -274,24 +276,26 @@ internal partial class Bridge
             return;
         }
 
+        IKeyholesServer keyholes = this;
+
         switch (GetEventListener(key))
         {
             case { Action: { } withoutEvent }:
                 @event.Dispose();                                   // Event not needed.  Return buffer to pool early.
-                Keyholes.DispatchEvent(withoutEvent);
+                keyholes.DispatchEvent(withoutEvent);
                 break;
 
             case { ActionEvent: { } withEvent }:
-                Keyholes.DispatchEvent(withEvent, @event);
+                keyholes.DispatchEvent(withEvent, @event);
                 break;
 
             case { Func: { } withoutEventAsync }:
                 @event.Dispose();                                   // Event not needed.  Return buffer to pool early.
-                _ = Keyholes.DispatchEvent(withoutEventAsync);      // Do not await here or it will block the event loop.
+                _ = keyholes.DispatchEvent(withoutEventAsync);      // Do not await here or it will block the event loop.
                 break;
 
             case { FuncEvent: { } withEventAsync }:
-                _ = Keyholes.DispatchEvent(withEventAsync, @event); // Do not await here or it will block the event loop.
+                _ = keyholes.DispatchEvent(withEventAsync, @event); // Do not await here or it will block the event loop.
                 break;
 
             default:
@@ -382,7 +386,7 @@ internal partial class Bridge
         {
             Keyhole[] oldBuffer = _snapshot;
             Keyhole[] newBuffer = CaptureSnapshot();
-            Reconciler.Diff(mutator: Keyholes, oldBuffer, newBuffer);
+            Reconciler.Diff(mutator: this, oldBuffer, newBuffer);
 
             // Keep this snapshot buffer around to use as the "before" next time.
             _snapshot = newBuffer;

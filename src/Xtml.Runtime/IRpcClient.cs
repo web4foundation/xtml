@@ -2,7 +2,7 @@ using Xtml.Dom;
 
 namespace Xtml.Runtime;
 
-public interface IRpcClient
+public interface IKeyholesClient
 {
     void SetValue(byte[] key, in Keyhole keyhole);
     void SetValue(byte[] key, Span<Keyhole> keyholes);

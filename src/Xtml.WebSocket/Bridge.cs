@@ -12,7 +12,7 @@ using Xtml.Runtime.Utilities;
 using Xtml.Templating;
 using Xtml.WebSocket.JsonRpc;
 using SystemWebSocket = System.Net.WebSockets.WebSocket;
-using Xtml.WebSocket.Dom;
+using Xtml.WebSocket.DocumentObjectModel;
 
 namespace Xtml.WebSocket;
 

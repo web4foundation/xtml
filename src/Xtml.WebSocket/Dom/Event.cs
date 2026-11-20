@@ -8,7 +8,7 @@ using Xtml.Dom.Events;
 using Xtml.Dom.Events.Subsets;
 using Xtml.WebSocket.Buffers;
 
-namespace Xtml.WebSocket.Dom;
+namespace Xtml.WebSocket.DocumentObjectModel;
 
 /// <summary>
 /// A WebSocket-optimized implementation of the Event interface.

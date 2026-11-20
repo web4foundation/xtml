@@ -1,11 +1,7 @@
-using System.Diagnostics;
-using Microsoft.Extensions.Logging;
-using Xtml.Dom;
 using Xtml.Runtime;
-using Xtml.Runtime.Utilities;
 using Xtml.WebSocket.JsonRpc;
 
-namespace Xtml.WebSocket;
+namespace Xtml.WebSocket.DocumentObjectModel;
 
 // Instead of a new-ing up another class, save an instantiation 
 // and explicitly implement on Bridge.

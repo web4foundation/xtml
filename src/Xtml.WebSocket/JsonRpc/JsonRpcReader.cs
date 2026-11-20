@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Text.Json;
 using Xtml.Dom;
 using Xtml.Runtime.Utilities;
-using Xtml.WebSocket.Dom;
+using Xtml.WebSocket.DocumentObjectModel;
 
 namespace Xtml.WebSocket.JsonRpc;
 

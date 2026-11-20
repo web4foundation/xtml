@@ -9,70 +9,9 @@ namespace Xtml.WebSocket;
 
 // Instead of a new-ing up another class, save an instantiation 
 // and explicitly implement on Bridge.
-internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
+internal partial class Bridge : IKeyholesServer
 {
-    public IKeyholes Keyholes => this;
-
-    void IRpcClient.SetValue(byte[] key, in Keyhole keyhole) => JsonRpcWriter
-        .Batch(this)
-        .Method(("keyholes['", key, "'].setValue"))
-        .Param(in keyhole)
-        .AsNotification();
-
-    void IRpcClient.SetValue(byte[] key, Span<Keyhole> keyholes) => JsonRpcWriter
-        .Batch(this)
-        .Method(("keyholes['", key, "'].setValue"))
-        .Param(keyholes)
-        .AsNotification();
-
-    void IRpcClient.SetNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes) => JsonRpcWriter
-        .Batch(this)
-        .Method(("keyholes['", key, "'].setNode"))
-        .Param(snapshot, keyholes)
-        .AsNotification();
-
-    void IRpcClient.SetNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, ValueTuple<string, byte[]> viewTransitionName) => JsonRpcWriter
-        .Batch(this)
-        .Method(("keyholes['", key, "'].setNode"))
-        .Param(snapshot, keyholes)
-        .Param(viewTransitionName)
-        .AsNotification();
-
-    void IRpcClient.SetNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, ValueTuple<string, int> viewTransitionNameNew, ValueTuple<string, int> viewTransitionNameOld) => JsonRpcWriter
-        .Batch(this)
-        .Method(("keyholes['", key, "'].setNode"))
-        .Param(snapshot, keyholes)
-        .Param(viewTransitionNameNew)
-        .Param(viewTransitionNameOld)
-        .AsNotification();
-
-    void IRpcClient.PushNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, byte[] newKey) => JsonRpcWriter
-        .Batch(this)
-        .Method(("keyholes['", key, "'].pushNode"))
-        .Param(snapshot, keyholes)
-        .Param(newKey)
-        .AsNotification();
-
-    void IRpcClient.PushNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, byte[] newKey, ValueTuple<string, int> viewTransitionName) => JsonRpcWriter
-        .Batch(this)
-        .Method(("keyholes['", key, "'].pushNode"))
-        .Param(snapshot, keyholes)
-        .Param(newKey)
-        .Param(viewTransitionName)
-        .AsNotification();
-
-    void IRpcClient.PopNode(byte[] key) => JsonRpcWriter
-        .Batch(this)
-        .Method(("keyholes['", key, "'].popNode"))
-        .AsNotification();
-    
-    void IRpcClient.PopNode(byte[] key, ValueTuple<string, int> viewTransitionName) => JsonRpcWriter
-        .Batch(this)
-        .Method(("keyholes['", key, "'].popNode"))
-        .Param(viewTransitionName)
-        .AsNotification();
-
-    void IRpcServer.DispatchEvent(Action listener)
+    void IKeyholesServer.DispatchEvent(Action listener)
     {
         var stopwatch = LogMessageStarted("dispatchEvent");
         try
@@ -90,7 +29,7 @@ internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
     }
 
-    void IRpcServer.DispatchEvent<T>(Action<Event> listener, T @event)
+    void IKeyholesServer.DispatchEvent<T>(Action<Event> listener, T @event)
         where T : struct
     {
         var stopwatch = LogMessageStarted("dispatchEvent");
@@ -112,7 +51,7 @@ internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
     }
 
-    async Task IRpcServer.DispatchEvent(Func<Task> listener)
+    async Task IKeyholesServer.DispatchEvent(Func<Task> listener)
     {
         var stopwatch = LogMessageStarted("dispatchEvent");
         try
@@ -131,7 +70,7 @@ internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
     }
 
-    async Task IRpcServer.DispatchEvent<T>(Func<Event, Task> listener, T @event)
+    async Task IKeyholesServer.DispatchEvent<T>(Func<Event, Task> listener, T @event)
         where T : struct
     {
         var stopwatch = LogMessageStarted("dispatchEvent");
@@ -154,14 +93,14 @@ internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         }
     }
 
-    async Task<string> IRpcServer.Ping()
+    async Task<string> IKeyholesServer.Ping()
     {
         var stopwatch = LogMessageStarted("ping");
         LogMessageEnded("ping", stopwatch);
         return "pong";
     }
 
-    void IRpcServer.Dump()
+    void IKeyholesServer.Dump()
     {
         var stopwatch = LogMessageStarted("dump");
 
@@ -171,7 +110,7 @@ internal partial class Bridge : IRpcClient, IRpcServer, IKeyholes
         LogMessageEnded("dump", stopwatch);
     }
 
-    void IRpcServer.Benchmark(int? threads)
+    void IKeyholesServer.Benchmark(int? threads)
     {
         var stopwatch = LogMessageStarted("benchmark");
 

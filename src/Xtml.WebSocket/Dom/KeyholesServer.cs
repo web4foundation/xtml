@@ -7,11 +7,11 @@ using Xtml.WebSocket.JsonRpc;
 
 namespace Xtml.WebSocket.DocumentObjectModel;
 
-// Instead of a new-ing up another class, save an instantiation 
-// and explicitly implement on Bridge.
-internal partial class Bridge : IKeyholesServer
+internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
 {
-    void IKeyholesServer.DispatchEvent(Action listener)
+    IConsole Console => new Dom(bridge);
+
+    public void DispatchEvent(Action listener)
     {
         var stopwatch = LogMessageStarted("dispatchEvent");
         try
@@ -20,7 +20,7 @@ internal partial class Bridge : IKeyholesServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
+            logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
         finally
@@ -29,8 +29,8 @@ internal partial class Bridge : IKeyholesServer
         }
     }
 
-    void IKeyholesServer.DispatchEvent<T>(Action<Event> listener, T @event)
-        where T : struct
+    public void DispatchEvent<T>(Action<Event> listener, T @event)
+        where T : struct, Event
     {
         var stopwatch = LogMessageStarted("dispatchEvent");
         try
@@ -40,7 +40,7 @@ internal partial class Bridge : IKeyholesServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
+            logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
         finally
@@ -51,17 +51,17 @@ internal partial class Bridge : IKeyholesServer
         }
     }
 
-    async Task IKeyholesServer.DispatchEvent(Func<Task> listener)
+    public async Task DispatchEvent(Func<Task> listener)
     {
         var stopwatch = LogMessageStarted("dispatchEvent");
         try
         {
-            using var _ = JsonRpcWriter.FlushOnAwait(this);
+            using var _ = JsonRpcWriter.FlushOnAwait(bridge);
             await listener();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
+            logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
         finally
@@ -70,19 +70,19 @@ internal partial class Bridge : IKeyholesServer
         }
     }
 
-    async Task IKeyholesServer.DispatchEvent<T>(Func<Event, Task> listener, T @event)
-        where T : struct
+    public async Task DispatchEvent<T>(Func<Event, Task> listener, T @event)
+        where T : struct, Event
     {
         var stopwatch = LogMessageStarted("dispatchEvent");
         try
         {
-            using var _ = JsonRpcWriter.FlushOnAwait(this);
+            using var _ = JsonRpcWriter.FlushOnAwait(bridge);
             // TODO: Memory allocation casting from TEvent (struct) to Event interface.
             await listener(@event);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
+            logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
         finally
@@ -93,24 +93,24 @@ internal partial class Bridge : IKeyholesServer
         }
     }
 
-    async Task<string> IKeyholesServer.Ping()
+    public async Task<string> Ping()
     {
         var stopwatch = LogMessageStarted("ping");
         LogMessageEnded("ping", stopwatch);
         return "pong";
     }
 
-    void IKeyholesServer.Dump()
+    public void Dump()
     {
         var stopwatch = LogMessageStarted("dump");
 
-        var buffer = CaptureSnapshot();
+        var buffer = bridge.CaptureSnapshot();
         new KeyholeDumper(Console, buffer).Dump();
 
         LogMessageEnded("dump", stopwatch);
     }
 
-    void IKeyholesServer.Benchmark(int? threads)
+    public void Benchmark(int? threads)
     {
         var stopwatch = LogMessageStarted("benchmark");
 
@@ -123,9 +123,9 @@ internal partial class Bridge : IKeyholesServer
     {
         // TODO: Temporary until a proper IHttpApplication is ready to be built and include proper diagnostics.
 
-        if (_logger.IsEnabled(LogLevel.Information))
+        if (logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Request starting {Protocol} {Method} - {ContentType} {ContentLength}",
                 "JSON-RPC/2.0",
                 method,
@@ -143,9 +143,9 @@ internal partial class Bridge : IKeyholesServer
     {
         // TODO: Temporary until a proper IHttpApplication is ready to be built and include proper diagnostics.
 
-        if (_logger.IsEnabled(LogLevel.Information))
+        if (logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation(
+            logger.LogInformation(
                 "Request finished {Protocol} {Method} - {StatusCode} {ContentLength} {ContentType} {ElapsedMilliseconds}ms",
                 "JSON-RPC/2.0",
                 method,

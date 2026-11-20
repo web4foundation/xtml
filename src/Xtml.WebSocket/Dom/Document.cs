@@ -2,9 +2,7 @@ using Xtml.Dom;
 
 namespace Xtml.WebSocket.DocumentObjectModel;
 
-// Instead of a new-ing up another class, save an instantiation 
-// and explicitly implement on Bridge.
-internal partial class Bridge : IDocument
+internal partial struct Dom : IDocument
 {
     public IDocument Document => this;
 

@@ -3,23 +3,21 @@ using Xtml.WebSocket.JsonRpc;
 
 namespace Xtml.WebSocket.DocumentObjectModel;
 
-// Instead of a new-ing up another class, save an instantiation 
-// and explicitly implement on Bridge.
-internal partial class Bridge : IConsole
+internal partial struct Dom : IConsole
 {
     public IConsole Console => this;
 
     // TODO: How to support object?
     // TODO: Tests still needed for each one.
     void IConsole.Assert(bool assertion, string message) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.assert")
         .Param(assertion)
         .Param(message)
         .AsNotification();
 
     void IConsole.Assert(bool assertion, string message, params Span<string> substitutions) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.assert")
         .Param(assertion)
         .Param(message)
@@ -31,32 +29,32 @@ internal partial class Bridge : IConsole
     void IConsole.Assert(bool assertion, params Span<object> values) => throw new NotImplementedException();
 
     void IConsole.Clear() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.clear")
         .AsNotification();
 
     void IConsole.Count() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.count")
         .AsNotification();
 
     void IConsole.Count(object label) => throw new NotImplementedException();
 
     void IConsole.CountReset() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.reset")
         .AsNotification();
 
     void IConsole.CountReset(object label) => throw new NotImplementedException();
 
     void IConsole.Debug(string message) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.debug")
         .Param(message)
         .AsNotification();
 
     void IConsole.Debug(string message, params Span<string> substitutions) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.debug")
         .Param(message)
         .OptionalParams(substitutions)
@@ -71,13 +69,13 @@ internal partial class Bridge : IConsole
     void IConsole.Dir(object obj, IConsole.DirOptions options) => throw new NotImplementedException();
 
     void IConsole.Error(string message) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.error")
         .Param(message)
         .AsNotification();
 
     void IConsole.Error(string message, params Span<string> substitutions) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.error")
         .Param(message)
         .OptionalParams(substitutions)
@@ -88,43 +86,43 @@ internal partial class Bridge : IConsole
     void IConsole.Error(object value, params Span<object> values) => throw new NotImplementedException();
 
     void IConsole.Group() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.group")
         .AsNotification();
 
     void IConsole.Group(string label) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.group")
         .Param(label)
         .AsNotification();
 
     void IConsole.GroupCollapsed() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.groupCollapsed")
         .AsNotification();
 
     void IConsole.GroupCollapsed(object label) => throw new NotImplementedException();
 
     void IConsole.GroupCollapsed(string message, params Span<string> substitutions) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.groupCollapsed")
         .Param(message)
         .OptionalParams(substitutions)
         .AsNotification();
 
     void IConsole.GroupEnd() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.groupEnd")
         .AsNotification();
 
     void IConsole.Info(string message) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.info")
         .Param(message)
         .AsNotification();
 
     void IConsole.Info(string message, params Span<string> substitutions) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.info")
         .Param(message)
         .OptionalParams(substitutions)
@@ -135,13 +133,13 @@ internal partial class Bridge : IConsole
     void IConsole.Info(object value, params Span<object> values) => throw new NotImplementedException();
 
     void IConsole.Log(string message) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.log")
         .Param(message)
         .AsNotification();
 
     void IConsole.Log(string message, params Span<string> substitutions) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.log")
         .Param(message)
         .OptionalParams(substitutions)
@@ -156,21 +154,21 @@ internal partial class Bridge : IConsole
     void IConsole.Table(object obj, string[] columns) => throw new NotImplementedException();
 
     void IConsole.Time() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.time")
         .AsNotification();
 
     void IConsole.Time(object label) => throw new NotImplementedException();
 
     void IConsole.TimeEnd() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.timeEnd")
         .AsNotification();
 
     void IConsole.TimeEnd(object label) => throw new NotImplementedException();
 
     void IConsole.TimeLog() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.timeLog")
         .AsNotification();
 
@@ -179,20 +177,20 @@ internal partial class Bridge : IConsole
     void IConsole.TimeLog(object label, params Span<object> values) => throw new NotImplementedException();
 
     void IConsole.Trace() => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.trace")
         .AsNotification();
 
     void IConsole.Trace(params Span<object> objects) => throw new NotImplementedException();
 
     void IConsole.Warn(string message) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.warn")
         .Param(message)
         .AsNotification();
 
     void IConsole.Warn(string message, params Span<string> substitutions) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method("console.warn")
         .Param(message)
         .OptionalParams(substitutions)

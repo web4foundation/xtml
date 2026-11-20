@@ -21,7 +21,6 @@ internal partial class Bridge
     private readonly static ConcurrentDictionary<Guid, Bridge> s_bridges = [];
     private readonly Func<Html> _template;
     private readonly ILogger _logger;
-    private readonly Propagation _propagation = new();
     private Keyhole[] _snapshot;
     private readonly Channel<JsonRpcMessageOrAsyncCallback> _eventLoopChannel;
     private readonly Channel<ReadOnlySequence<byte>> _outputChannel;
@@ -29,6 +28,7 @@ internal partial class Bridge
     private Stopwatch _lastReconcile = Stopwatch.StartNew();
 
     public Guid WindowId { get; init; }
+    public readonly Propagation Propagation = new();
     public List<EventListener> RootEventListeners { get; init; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromMilliseconds(1000d / 60d); // 60fps
     public bool ForceSequentialAsync { get; set; } = false;
@@ -193,7 +193,7 @@ internal partial class Bridge
 
     private bool ProcessRequestMessage(in JsonRpcReader rpc, ReadOnlySequence<byte> message)
     {
-        IKeyholesServer keyholes = this;
+        var keyholes = new KeyholesServer(this, _logger);
 
         switch (rpc.Method)
         {
@@ -220,7 +220,7 @@ internal partial class Bridge
             case var method when method.EndsWith("dispatchEvent"u8):
                 InvokeEventListener(
                     key: GetKey(method),
-                    @event: rpc.Params.GetNextAsEvent(message, Window, _propagation)
+                    @event: rpc.Params.GetNextAsEvent(message, this)
                 );
                 return false; // @event will return the buffer(s) to the pool.
 
@@ -270,13 +270,13 @@ internal partial class Bridge
     {
         // Do not handle this event if `stopPropagation()` or `stopImmediatePropagation()`
         // has previously been called on the browser's same event instance.
-        if (_propagation.IsStopped)
+        if (Propagation.IsStopped)
         {
             @event.Dispose();
             return;
         }
 
-        IKeyholesServer keyholes = this;
+        var keyholes = new KeyholesServer(this, _logger);
 
         switch (GetEventListener(key))
         {
@@ -385,7 +385,8 @@ internal partial class Bridge
         {
             Keyhole[] oldBuffer = _snapshot;
             Keyhole[] newBuffer = CaptureSnapshot();
-            Reconciler.Diff(mutator: this, oldBuffer, newBuffer);
+
+            Reconciler<KeyholesClient>.Diff(new(this), oldBuffer, newBuffer);
 
             // Keep this snapshot buffer around to use as the "before" next time.
             _snapshot = newBuffer;

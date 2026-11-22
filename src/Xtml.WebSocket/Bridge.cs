@@ -208,18 +208,15 @@ internal partial class Bridge
                 break;
 
             case var method when method.SequenceEqual("keyholes.ping"u8) && rpc.IdAsInt is int id:
-                keyholes.Ping()
-                    .ContinueWith(t => JsonRpcWriter
-                        .Batch(this)
-                        .Result(t.Result)
-                        .AsResponse(id)
-                    );
-                    // TODO: This ^ captures and allocates.  Moot for all async?
+                keyholes
+                    .AsResponse(id)
+                    .Ping();
                 break;
 
             case var method when method.EndsWith("dispatchEvent"u8):
                 InvokeEventListener(
                     key: GetKey(method),
+                    keyholes: keyholes,
                     @event: rpc.Params.GetNextAsEvent(message, this)
                 );
                 return false; // @event will return the buffer(s) to the pool.
@@ -266,7 +263,7 @@ internal partial class Bridge
         return true;
     }
 
-    private void InvokeEventListener(ReadOnlySpan<byte> key, in LazyEvent @event)
+    private void InvokeEventListener(ReadOnlySpan<byte> key, in KeyholesServer keyholes, in LazyEvent @event)
     {
         // Do not handle this event if `stopPropagation()` or `stopImmediatePropagation()`
         // has previously been called on the browser's same event instance.
@@ -275,8 +272,6 @@ internal partial class Bridge
             @event.Dispose();
             return;
         }
-
-        var keyholes = new KeyholesServer(this, _logger);
 
         switch (GetEventListener(key))
         {

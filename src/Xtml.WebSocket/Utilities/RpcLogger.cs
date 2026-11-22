@@ -3,13 +3,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Xtml.WebSocket.Utilities;
 
-internal struct RpcLogger : IDisposable
+// TODO: Support OpenTelemetry, etc, and follow ASP.NET Core's HTTP request logging config.
+internal readonly struct RpcLogger : IDisposable
 {
     private readonly long _startTimestamp = Stopwatch.GetTimestamp();
     private readonly ILogger _logger;
     private readonly string _method;
 
-    public static RpcLogger LogRpc(ILogger logger, string method) => new(logger, method);
+    public static RpcLogger LogMessage(ILogger logger, string method) => new(logger, method);
 
     private RpcLogger(ILogger logger, string method)
     {

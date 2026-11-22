@@ -22,7 +22,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
     {
         try
         {
-            using var _ = RpcLogger.LogRpc(logger, "dispatchEvent");
+            using var _ = RpcLogger.LogMessage(logger, "dispatchEvent");
             listener();
         }
         catch (Exception ex)
@@ -37,7 +37,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
     {
         try
         {
-            using var _ = RpcLogger.LogRpc(logger, "dispatchEvent");
+            using var _ = RpcLogger.LogMessage(logger, "dispatchEvent");
             // TODO: Memory allocation casting from TEvent (struct) to Event interface.
             listener(@event);
         }
@@ -57,7 +57,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
     {
         try
         {
-            using var _ = RpcLogger.LogRpc(logger, "dispatchEvent");
+            using var _ = RpcLogger.LogMessage(logger, "dispatchEvent");
             using var __ = JsonRpcWriter.FlushOnAwait(bridge);
             await listener();
         }
@@ -73,7 +73,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
     {
         try
         {
-            using var _ = RpcLogger.LogRpc(logger, "dispatchEvent");
+            using var _ = RpcLogger.LogMessage(logger, "dispatchEvent");
             using var __ = JsonRpcWriter.FlushOnAwait(bridge);
             // TODO: Memory allocation casting from TEvent (struct) to Event interface.
             await listener(@event);
@@ -92,7 +92,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
 
     public void Ping()
     {
-        using var _ = RpcLogger.LogRpc(logger, "ping");
+        using var _ = RpcLogger.LogMessage(logger, "ping");
 
         if (_requestId is not int id)
         {
@@ -109,7 +109,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
 
     public void Dump()
     {
-        using var _ = RpcLogger.LogRpc(logger, "dump");
+        using var _ = RpcLogger.LogMessage(logger, "dump");
 
         var buffer = bridge.CaptureSnapshot();
         new KeyholeDumper(Console, buffer).Dump();
@@ -117,7 +117,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
 
     public void Benchmark(int? threads)
     {
-        using var _ = RpcLogger.LogRpc(logger, "benchmark");
+        using var _ = RpcLogger.LogMessage(logger, "benchmark");
 
         // TODO: Implement
     }

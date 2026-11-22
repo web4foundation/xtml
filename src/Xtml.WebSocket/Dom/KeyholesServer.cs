@@ -1,9 +1,9 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Xtml.Dom;
 using Xtml.Runtime;
 using Xtml.Runtime.Utilities;
 using Xtml.WebSocket.JsonRpc;
+using Xtml.WebSocket.Utilities;
 
 namespace Xtml.WebSocket.DocumentObjectModel;
 
@@ -20,9 +20,9 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
 
     public void DispatchEvent(Action listener)
     {
-        var stopwatch = LogMessageStarted("dispatchEvent");
         try
         {
+            using var _ = RpcLogger.LogRpc(logger, "dispatchEvent");
             listener();
         }
         catch (Exception ex)
@@ -30,18 +30,14 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
             logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
-        finally
-        {
-            LogMessageEnded("dispatchEvent", stopwatch);
-        }
     }
 
     public void DispatchEvent<T>(Action<Event> listener, T @event)
         where T : struct, Event
     {
-        var stopwatch = LogMessageStarted("dispatchEvent");
         try
         {
+            using var _ = RpcLogger.LogRpc(logger, "dispatchEvent");
             // TODO: Memory allocation casting from TEvent (struct) to Event interface.
             listener(@event);
         }
@@ -54,16 +50,15 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
         {
             // Return buffer(s) to the pool
             @event.Dispose();
-            LogMessageEnded("dispatchEvent", stopwatch);
         }
     }
 
     public async Task DispatchEvent(Func<Task> listener)
     {
-        var stopwatch = LogMessageStarted("dispatchEvent");
         try
         {
-            using var _ = JsonRpcWriter.FlushOnAwait(bridge);
+            using var _ = RpcLogger.LogRpc(logger, "dispatchEvent");
+            using var __ = JsonRpcWriter.FlushOnAwait(bridge);
             await listener();
         }
         catch (Exception ex)
@@ -71,19 +66,15 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
             logger.LogError(ex, "An unexpected error in this event listener: {Message}", ex.Message);
             Console.Error(ex);
         }
-        finally
-        {
-            LogMessageEnded("dispatchEvent", stopwatch);
-        }
     }
 
     public async Task DispatchEvent<T>(Func<Event, Task> listener, T @event)
         where T : struct, Event
     {
-        var stopwatch = LogMessageStarted("dispatchEvent");
         try
         {
-            using var _ = JsonRpcWriter.FlushOnAwait(bridge);
+            using var _ = RpcLogger.LogRpc(logger, "dispatchEvent");
+            using var __ = JsonRpcWriter.FlushOnAwait(bridge);
             // TODO: Memory allocation casting from TEvent (struct) to Event interface.
             await listener(@event);
         }
@@ -96,13 +87,12 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
         {
             // Return buffer(s) to the pool
             @event.Dispose();
-            LogMessageEnded("dispatchEvent", stopwatch);
         }
     }
 
     public void Ping()
     {
-        var stopwatch = LogMessageStarted("ping");
+        using var _ = RpcLogger.LogRpc(logger, "ping");
 
         if (_requestId is not int id)
         {
@@ -115,64 +105,20 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
             .Batch(bridge)
             .Result("pong")
             .AsResponse(id);
-
-        LogMessageEnded("ping", stopwatch);
     }
 
     public void Dump()
     {
-        var stopwatch = LogMessageStarted("dump");
+        using var _ = RpcLogger.LogRpc(logger, "dump");
 
         var buffer = bridge.CaptureSnapshot();
         new KeyholeDumper(Console, buffer).Dump();
-
-        LogMessageEnded("dump", stopwatch);
     }
 
     public void Benchmark(int? threads)
     {
-        var stopwatch = LogMessageStarted("benchmark");
+        using var _ = RpcLogger.LogRpc(logger, "benchmark");
 
         // TODO: Implement
-
-        LogMessageEnded("benchmark", stopwatch);
-    }
-
-    private Stopwatch? LogMessageStarted(string method)
-    {
-        // TODO: Temporary until a proper IHttpApplication is ready to be built and include proper diagnostics.
-
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation(
-                "Request starting {Protocol} {Method} - {ContentType} {ContentLength}",
-                "JSON-RPC/2.0",
-                method,
-                "application/json",
-                ""
-            );
-
-            // TODO: Memory allocation!
-            return Stopwatch.StartNew();
-        }
-        return null;
-    }
-
-    private void LogMessageEnded(string method, Stopwatch? stopwatch)
-    {
-        // TODO: Temporary until a proper IHttpApplication is ready to be built and include proper diagnostics.
-
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation(
-                "Request finished {Protocol} {Method} - {StatusCode} {ContentLength} {ContentType} {ElapsedMilliseconds}ms",
-                "JSON-RPC/2.0",
-                method,
-                200,
-                "",
-                "application/json",
-                stopwatch?.Elapsed.TotalMilliseconds
-            );
-        }
     }
 }

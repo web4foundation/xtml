@@ -9,7 +9,14 @@ namespace Xtml.WebSocket.DocumentObjectModel;
 
 internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
 {
-    IConsole Console => new Dom(bridge);
+    private IConsole Console => new Dom(bridge);
+    private int? _requestId;
+
+    public KeyholesServer AsResponse(int id)
+    {
+        _requestId = id;
+        return this;
+    }
 
     public void DispatchEvent(Action listener)
     {
@@ -93,11 +100,23 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
         }
     }
 
-    public async Task<string> Ping()
+    public void Ping()
     {
         var stopwatch = LogMessageStarted("ping");
+
+        if (_requestId is not int id)
+        {
+            logger.LogError("Cannot send ping response without a request ID.");
+            return;
+        }
+        _requestId = null;
+
+        JsonRpcWriter
+            .Batch(bridge)
+            .Result("pong")
+            .AsResponse(id);
+
         LogMessageEnded("ping", stopwatch);
-        return "pong";
     }
 
     public void Dump()

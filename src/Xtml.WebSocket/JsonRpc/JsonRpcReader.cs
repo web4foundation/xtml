@@ -119,11 +119,13 @@ internal readonly ref struct JsonRpcReader
             return JsonRpcReader.ReadSequence(sequence, ref reader);
         }
 
-        public LazyEvent GetNextAsEvent(ReadOnlySequence<byte> rentedBuffer, Bridge bridge)
+        public LazyEvent GetNextAsEvent(ReadOnlySequence<byte> rentedBuffer, DocumentObjectModel.Dom dom)
         {
-            var e = new LazyEvent(rentedBuffer, GetNextAsSequence(), bridge);
-            bridge.Propagation.CurrentID = GetNextAsInt();
-            bridge.Propagation.CurrentLevel = GetNextOptionalAsInt() ?? 0;
+            var e = new LazyEvent(rentedBuffer, GetNextAsSequence(), dom);
+            dom.SetCurrentPropagation(
+                id: GetNextAsInt(),
+                level: GetNextOptionalAsInt() ?? 0
+            );
             return e;
         }
     }

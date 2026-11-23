@@ -2,11 +2,10 @@ using Xtml.Dom;
 
 namespace Xtml.WebSocket.DocumentObjectModel;
 
-internal partial struct Dom : IDocument
+internal class Document(Bridge bridge) : IDocument
 {
-    public IDocument Document => this;
+    public IWindow DefaultView => bridge.Dom.Window.Value;
 
-    IWindow IDocument.DefaultView => throw new NotImplementedException();
-
-    string? IDocument.Title { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+    // TODO: Implement Title.
+    public string? Title { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 }

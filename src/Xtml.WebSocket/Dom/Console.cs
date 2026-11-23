@@ -3,10 +3,8 @@ using Xtml.WebSocket.JsonRpc;
 
 namespace Xtml.WebSocket.DocumentObjectModel;
 
-internal partial struct Dom : IConsole
+internal class Console(Bridge bridge) : IConsole
 {
-    public IConsole Console => this;
-
     // TODO: How to support object?
     // TODO: Tests still needed for each one.
     void IConsole.Assert(bool assertion, string message) => JsonRpcWriter

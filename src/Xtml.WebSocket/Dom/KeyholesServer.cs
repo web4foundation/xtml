@@ -9,7 +9,7 @@ namespace Xtml.WebSocket.DocumentObjectModel;
 
 internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
 {
-    private IConsole Console => new Dom(bridge);
+    private IConsole Console => bridge.Dom.Console.Value;
     private int? _requestId;
 
     public KeyholesServer AsResponse(int id)

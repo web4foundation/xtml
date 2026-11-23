@@ -28,7 +28,7 @@ internal partial class Bridge
     private Stopwatch _lastReconcile = Stopwatch.StartNew();
 
     public Guid WindowId { get; init; }
-    public readonly Propagation Propagation = new();
+    public DocumentObjectModel.Dom Dom { get; init; }
     public List<EventListener> RootEventListeners { get; init; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromMilliseconds(1000d / 60d); // 60fps
     public bool ForceSequentialAsync { get; set; } = false;
@@ -42,9 +42,11 @@ internal partial class Bridge
     private Bridge(Guid windowId, Func<Html> template, List<EventListener> listeners, ILogger logger)
     {
         WindowId = windowId;
+        Dom = new DocumentObjectModel.Dom(this);
+        RootEventListeners = listeners;
+
         s_bridges[windowId] = this;
         _template = template;
-        RootEventListeners = listeners;
         _logger = logger;
         _snapshot = CaptureSnapshot(); // TODO: Should this be passed in as an arg from the byproduct of HtmlKeyComposer?
 
@@ -217,7 +219,7 @@ internal partial class Bridge
                 InvokeEventListener(
                     key: GetKey(method),
                     keyholes: keyholes,
-                    @event: rpc.Params.GetNextAsEvent(message, this)
+                    @event: rpc.Params.GetNextAsEvent(message, Dom)
                 );
                 return false; // @event will return the buffer(s) to the pool.
 
@@ -267,7 +269,7 @@ internal partial class Bridge
     {
         // Do not handle this event if `stopPropagation()` or `stopImmediatePropagation()`
         // has previously been called on the browser's same event instance.
-        if (Propagation.IsStopped)
+        if (Dom.IsPropagationStopped)
         {
             @event.Dispose();
             return;

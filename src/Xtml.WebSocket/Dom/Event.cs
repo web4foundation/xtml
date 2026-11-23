@@ -23,13 +23,12 @@ namespace Xtml.WebSocket.DocumentObjectModel;
 internal struct LazyEvent(
     ReadOnlySequence<byte> rentedBuffer, 
     ReadOnlySequence<byte> eventBuffer, 
-    Bridge bridge
+    Dom dom
 ) : Event, IDisposable
 {
     private static readonly ObjectPool<Dictionary<string, long>> _valueDictionaryPool = ObjectPool.Create<Dictionary<string, long>>();
     private Dictionary<string, long>? _values = null; // Here, longs are used to encode bools, ints, and doubles.
     private Dictionary<string, object>? _references = null;
-    private Dom Dom => new(bridge);
 
     public void Dispose()
     {
@@ -618,7 +617,7 @@ internal struct LazyEvent(
     public string? Type => GetReference("type") as string;
     string IEvent.Type => Type ?? string.Empty;
 
-    public IWindow? View => Dom.Window;
+    public IWindow? View => dom.Window.Value;
     IWindow IViewSubset.View => View!;
 
     public int? Width => GetInt("width");
@@ -630,7 +629,7 @@ internal struct LazyEvent(
     public double? Y => GetDouble("y");
     double IXYSubset.Y => Y ?? default;
 
-    public void StopPropagation() => bridge.Propagation.Stop();
+    public void StopPropagation() => dom.StopPropagation();
 
-    public void StopImmediatePropagation() => bridge.Propagation.StopImmediate();
+    public void StopImmediatePropagation() => dom.StopImmediatePropagation();
 }

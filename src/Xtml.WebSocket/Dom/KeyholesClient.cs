@@ -1,7 +1,7 @@
 using Xtml.Runtime;
 using Xtml.WebSocket.JsonRpc;
 
-namespace Xtml.WebSocket.DocumentObjectModel;
+namespace Xtml.WebSocket.BrowserApis;
 
 internal ref struct KeyholesClient(Bridge bridge) : IKeyholesClient
 {

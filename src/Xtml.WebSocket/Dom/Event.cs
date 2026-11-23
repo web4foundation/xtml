@@ -8,7 +8,7 @@ using Xtml.Dom.Events;
 using Xtml.Dom.Events.Subsets;
 using Xtml.WebSocket.Buffers;
 
-namespace Xtml.WebSocket.DocumentObjectModel;
+namespace Xtml.WebSocket.BrowserApis;
 
 /// <summary>
 /// A WebSocket-optimized implementation of the Event interface.
@@ -23,7 +23,7 @@ namespace Xtml.WebSocket.DocumentObjectModel;
 internal struct LazyEvent(
     ReadOnlySequence<byte> rentedBuffer, 
     ReadOnlySequence<byte> eventBuffer, 
-    Dom dom
+    BrowserProxy browser
 ) : Event, IDisposable
 {
     private static readonly ObjectPool<Dictionary<string, long>> _valueDictionaryPool = ObjectPool.Create<Dictionary<string, long>>();
@@ -617,7 +617,7 @@ internal struct LazyEvent(
     public string? Type => GetReference("type") as string;
     string IEvent.Type => Type ?? string.Empty;
 
-    public IWindow? View => dom.Window.Value;
+    public IWindow? View => browser.Window.Value;
     IWindow IViewSubset.View => View!;
 
     public int? Width => GetInt("width");
@@ -629,7 +629,7 @@ internal struct LazyEvent(
     public double? Y => GetDouble("y");
     double IXYSubset.Y => Y ?? default;
 
-    public void StopPropagation() => dom.StopPropagation();
+    public void StopPropagation() => browser.StopPropagation();
 
-    public void StopImmediatePropagation() => dom.StopImmediatePropagation();
+    public void StopImmediatePropagation() => browser.StopImmediatePropagation();
 }

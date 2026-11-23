@@ -1,7 +1,7 @@
 using Xtml.Dom;
 using Xtml.WebSocket.JsonRpc;
 
-namespace Xtml.WebSocket.DocumentObjectModel;
+namespace Xtml.WebSocket.BrowserApis;
 
 internal class Console(Bridge bridge) : IConsole
 {

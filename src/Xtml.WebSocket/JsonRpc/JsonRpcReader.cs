@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Text.Json;
 using Xtml.Dom;
 using Xtml.Runtime.Utilities;
-using Xtml.WebSocket.DocumentObjectModel;
+using Xtml.WebSocket.BrowserApis;
 
 namespace Xtml.WebSocket.JsonRpc;
 
@@ -119,10 +119,10 @@ internal readonly ref struct JsonRpcReader
             return JsonRpcReader.ReadSequence(sequence, ref reader);
         }
 
-        public LazyEvent GetNextAsEvent(ReadOnlySequence<byte> rentedBuffer, DocumentObjectModel.Dom dom)
+        public LazyEvent GetNextAsEvent(ReadOnlySequence<byte> rentedBuffer, BrowserProxy browser)
         {
-            var e = new LazyEvent(rentedBuffer, GetNextAsSequence(), dom);
-            dom.SetCurrentPropagation(
+            var e = new LazyEvent(rentedBuffer, GetNextAsSequence(), browser);
+            browser.SetCurrentPropagation(
                 id: GetNextAsInt(),
                 level: GetNextOptionalAsInt() ?? 0
             );

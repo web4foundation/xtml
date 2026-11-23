@@ -1,13 +1,13 @@
 using Xtml.Dom;
 using Xtml.WebSocket.JsonRpc;
 
-namespace Xtml.WebSocket.DocumentObjectModel;
+namespace Xtml.WebSocket.BrowserApis;
 
 internal class Window(Bridge bridge) : IWindow
 {
     IWindow IWindow.Window => this;
-    public IConsole Console => bridge.Dom.Console.Value;
-    public IDocument Document => bridge.Dom.Document.Value;
+    public IConsole Console => bridge.Browser.Console.Value;
+    public IDocument Document => bridge.Browser.Document.Value;
 
     // TODO: I need a concept of undefined, because window.prompt(undefined, "the default") is different from window.prompt(null, "the default")
 

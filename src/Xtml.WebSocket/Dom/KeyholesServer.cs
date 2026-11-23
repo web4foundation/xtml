@@ -5,11 +5,11 @@ using Xtml.Runtime.Utilities;
 using Xtml.WebSocket.JsonRpc;
 using Xtml.WebSocket.Utilities;
 
-namespace Xtml.WebSocket.DocumentObjectModel;
+namespace Xtml.WebSocket.BrowserApis;
 
 internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
 {
-    private IConsole Console => bridge.Dom.Console.Value;
+    private IConsole Console => bridge.Browser.Console.Value;
     private int? _requestId;
 
     public KeyholesServer AsResponse(int id)

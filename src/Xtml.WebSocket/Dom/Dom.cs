@@ -1,8 +1,8 @@
 using Xtml.Dom;
 
-namespace Xtml.WebSocket.DocumentObjectModel;
+namespace Xtml.WebSocket.BrowserApis;
 
-internal partial class Dom(Bridge bridge)
+internal partial class BrowserProxy(Bridge bridge)
 {
     public Lazy<Window> Window = new(() => new Window(bridge));
     public Lazy<Console> Console = new(() => new Console(bridge));

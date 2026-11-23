@@ -12,7 +12,7 @@ using Xtml.Runtime.Utilities;
 using Xtml.Templating;
 using Xtml.WebSocket.JsonRpc;
 using SystemWebSocket = System.Net.WebSockets.WebSocket;
-using Xtml.WebSocket.DocumentObjectModel;
+using Xtml.WebSocket.BrowserApis;
 
 namespace Xtml.WebSocket;
 
@@ -28,7 +28,7 @@ internal partial class Bridge
     private Stopwatch _lastReconcile = Stopwatch.StartNew();
 
     public Guid WindowId { get; init; }
-    public DocumentObjectModel.Dom Dom { get; init; }
+    public BrowserProxy Browser { get; init; }
     public List<EventListener> RootEventListeners { get; init; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromMilliseconds(1000d / 60d); // 60fps
     public bool ForceSequentialAsync { get; set; } = false;
@@ -42,7 +42,7 @@ internal partial class Bridge
     private Bridge(Guid windowId, Func<Html> template, List<EventListener> listeners, ILogger logger)
     {
         WindowId = windowId;
-        Dom = new DocumentObjectModel.Dom(this);
+        Browser = new BrowserProxy(this);
         RootEventListeners = listeners;
 
         s_bridges[windowId] = this;
@@ -219,7 +219,7 @@ internal partial class Bridge
                 InvokeEventListener(
                     key: GetKey(method),
                     keyholes: keyholes,
-                    @event: rpc.Params.GetNextAsEvent(message, Dom)
+                    @event: rpc.Params.GetNextAsEvent(message, Browser)
                 );
                 return false; // @event will return the buffer(s) to the pool.
 
@@ -269,7 +269,7 @@ internal partial class Bridge
     {
         // Do not handle this event if `stopPropagation()` or `stopImmediatePropagation()`
         // has previously been called on the browser's same event instance.
-        if (Dom.IsPropagationStopped)
+        if (Browser.IsPropagationStopped)
         {
             @event.Dispose();
             return;

@@ -39,14 +39,6 @@ internal ref partial struct JsonRpcWriter
         return t_current;
     }
 
-    public static FlushDisposable FlushOnDispose(Bridge bridge)
-    {
-        var writer = GetWriter();
-        writer.IsBatching = true;
-        writer.LastFlush.Restart();
-        return new FlushDisposable(bridge, writer);
-    }
-
     private static void Flush(Bridge bridge, HybridWriter writer)
     {
         if (writer.Utf8Json.BytesCommitted == 0 && writer.Utf8Json.BytesPending <= 1) // i.e. the `[`

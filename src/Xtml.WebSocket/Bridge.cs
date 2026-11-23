@@ -145,7 +145,7 @@ internal partial class Bridge
     {
         while (await _eventLoopChannel.Reader.WaitToReadAsync(cancel))
         {
-            using var _ = JsonRpcWriter.FlushOnDispose(this);
+            using var _ = FlushOnDispose();
             while (_eventLoopChannel.Reader.TryRead(out var work))
             {
                 if (work.Message is ReadOnlySequence<byte> message)
@@ -413,7 +413,9 @@ internal partial class Bridge
                     CancellationToken.None
                 );
         }, webSocket);
-    
+
+    private JsonRpcWriter.FlushDisposable FlushOnDispose() => new(this);
+
     public IDisposable FlushOnAwait()
     {
         // Allocation, but moot because async
@@ -445,7 +447,7 @@ internal partial class Bridge
                     else
                     {
                         using var _ = bridge.FlushOnAwait();
-                        using var __ = JsonRpcWriter.FlushOnDispose(bridge);
+                        using var __ = bridge.FlushOnDispose();
                         callback(state);
                     }
                 },

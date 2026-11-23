@@ -154,7 +154,7 @@ internal partial class Bridge
                 }
                 else if (work.Callback is SendOrPostCallback callback)
                 {
-                    using var __ = JsonRpcWriter.FlushOnAwait(this);
+                    using var __ = FlushOnAwait();
                     callback(work.State);
                 }
 
@@ -340,7 +340,7 @@ internal partial class Bridge
         return tcs.Task;
     }
 
-    public void PostToEventLoop(SendOrPostCallback callback, object? state)
+    private void PostToEventLoop(SendOrPostCallback callback, object? state)
     {
         if (!_eventLoopChannel.Writer.TryWrite(new(null, callback, state)))
             throw new InvalidOperationException("Failed to write to the event loop channel.");
@@ -413,4 +413,47 @@ internal partial class Bridge
                     CancellationToken.None
                 );
         }, webSocket);
+    
+    public IDisposable FlushOnAwait()
+    {
+        // Allocation, but moot because async
+        var syncCtx = new FlushBatchOrPostToEventLoopSynchronizationContext(this);
+        SynchronizationContext.SetSynchronizationContext(syncCtx);
+        return syncCtx;
+    }
+
+    private class FlushBatchOrPostToEventLoopSynchronizationContext(Bridge bridge) : SynchronizationContext, IDisposable
+    {
+        private SynchronizationContext? _previous = SynchronizationContext.Current;
+        private record struct StateHolder(
+            SendOrPostCallback Callback, 
+            object? State, 
+            Bridge Bridge, 
+            FlushBatchOrPostToEventLoopSynchronizationContext SyncCtx
+        );
+
+        public override void Post(SendOrPostCallback callback, object? state)
+        {
+            ThreadPool.QueueUserWorkItem<StateHolder>(
+                callBack: static stateHolder => {
+                    var (callback, state, bridge, syncCtx) = stateHolder;
+
+                    if (bridge.ForceSequentialAsync)
+                    {
+                        bridge.PostToEventLoop(callback, state);
+                    }
+                    else
+                    {
+                        using var _ = bridge.FlushOnAwait();
+                        using var __ = JsonRpcWriter.FlushOnDispose(bridge);
+                        callback(state);
+                    }
+                },
+                state: new StateHolder(callback, state, bridge, this),
+                preferLocal: false
+            );
+        }
+
+        public void Dispose() => SynchronizationContext.SetSynchronizationContext(_previous);
+    }
 }

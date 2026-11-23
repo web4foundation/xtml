@@ -58,7 +58,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
         try
         {
             using var _ = RpcLogger.LogMessage(logger, "dispatchEvent");
-            using var __ = JsonRpcWriter.FlushOnAwait(bridge);
+            using var __ = bridge.FlushOnAwait();
             await listener();
         }
         catch (Exception ex)
@@ -74,7 +74,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
         try
         {
             using var _ = RpcLogger.LogMessage(logger, "dispatchEvent");
-            using var __ = JsonRpcWriter.FlushOnAwait(bridge);
+            using var __ = bridge.FlushOnAwait();
             // TODO: Memory allocation casting from TEvent (struct) to Event interface.
             await listener(@event);
         }

@@ -47,13 +47,6 @@ internal ref partial struct JsonRpcWriter
         return new FlushDisposable(bridge, writer);
     }
 
-    public static ResetSynchronizationContextDisposable FlushOnAwait(Bridge bridge)
-    {
-        var flusher = new ResetSynchronizationContextDisposable(SynchronizationContext.Current);
-        SynchronizationContext.SetSynchronizationContext(new SyncCtx(bridge)); // Allocation, but moot because async
-        return flusher;
-    }
-
     private static void Flush(Bridge bridge, HybridWriter writer)
     {
         if (writer.Utf8Json.BytesCommitted == 0 && writer.Utf8Json.BytesPending <= 1) // i.e. the `[`

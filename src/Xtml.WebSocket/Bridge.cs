@@ -12,7 +12,7 @@ using Xtml.Runtime.Utilities;
 using Xtml.Templating;
 using Xtml.WebSocket.JsonRpc;
 using SystemWebSocket = System.Net.WebSockets.WebSocket;
-using Xtml.WebSocket.DocumentObjectModel;
+using Xtml.WebSocket.BrowserApis;
 
 namespace Xtml.WebSocket;
 
@@ -21,7 +21,6 @@ internal partial class Bridge
     private readonly static ConcurrentDictionary<Guid, Bridge> s_bridges = [];
     private readonly Func<Html> _template;
     private readonly ILogger _logger;
-    private readonly Propagation _propagation = new();
     private Keyhole[] _snapshot;
     private readonly Channel<JsonRpcMessageOrAsyncCallback> _eventLoopChannel;
     private readonly Channel<ReadOnlySequence<byte>> _outputChannel;
@@ -29,6 +28,7 @@ internal partial class Bridge
     private Stopwatch _lastReconcile = Stopwatch.StartNew();
 
     public Guid WindowId { get; init; }
+    public BrowserProxy Browser { get; init; }
     public List<EventListener> RootEventListeners { get; init; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromMilliseconds(1000d / 60d); // 60fps
     public bool ForceSequentialAsync { get; set; } = false;
@@ -42,9 +42,11 @@ internal partial class Bridge
     private Bridge(Guid windowId, Func<Html> template, List<EventListener> listeners, ILogger logger)
     {
         WindowId = windowId;
+        Browser = new BrowserProxy(this);
+        RootEventListeners = listeners;
+
         s_bridges[windowId] = this;
         _template = template;
-        RootEventListeners = listeners;
         _logger = logger;
         _snapshot = CaptureSnapshot(); // TODO: Should this be passed in as an arg from the byproduct of HtmlKeyComposer?
 
@@ -193,7 +195,7 @@ internal partial class Bridge
 
     private bool ProcessRequestMessage(in JsonRpcReader rpc, ReadOnlySequence<byte> message)
     {
-        IKeyholesServer keyholes = this;
+        var keyholes = new KeyholesServer(this, _logger);
 
         switch (rpc.Method)
         {
@@ -208,19 +210,16 @@ internal partial class Bridge
                 break;
 
             case var method when method.SequenceEqual("keyholes.ping"u8) && rpc.IdAsInt is int id:
-                keyholes.Ping()
-                    .ContinueWith(t => JsonRpcWriter
-                        .Batch(this)
-                        .Result(t.Result)
-                        .AsResponse(id)
-                    );
-                    // TODO: This ^ captures and allocates.  Moot for all async?
+                keyholes
+                    .AsResponse(id)
+                    .Ping();
                 break;
 
             case var method when method.EndsWith("dispatchEvent"u8):
                 InvokeEventListener(
                     key: GetKey(method),
-                    @event: rpc.Params.GetNextAsEvent(message, Window, _propagation)
+                    keyholes: keyholes,
+                    @event: rpc.Params.GetNextAsEvent(message, Browser)
                 );
                 return false; // @event will return the buffer(s) to the pool.
 
@@ -266,17 +265,15 @@ internal partial class Bridge
         return true;
     }
 
-    private void InvokeEventListener(ReadOnlySpan<byte> key, in LazyEvent @event)
+    private void InvokeEventListener(ReadOnlySpan<byte> key, in KeyholesServer keyholes, in LazyEvent @event)
     {
         // Do not handle this event if `stopPropagation()` or `stopImmediatePropagation()`
         // has previously been called on the browser's same event instance.
-        if (_propagation.IsStopped)
+        if (Browser.IsPropagationStopped)
         {
             @event.Dispose();
             return;
         }
-
-        IKeyholesServer keyholes = this;
 
         switch (GetEventListener(key))
         {
@@ -385,7 +382,8 @@ internal partial class Bridge
         {
             Keyhole[] oldBuffer = _snapshot;
             Keyhole[] newBuffer = CaptureSnapshot();
-            Reconciler.Diff(mutator: this, oldBuffer, newBuffer);
+
+            Reconciler<KeyholesClient>.Diff(new(this), oldBuffer, newBuffer);
 
             // Keep this snapshot buffer around to use as the "before" next time.
             _snapshot = newBuffer;

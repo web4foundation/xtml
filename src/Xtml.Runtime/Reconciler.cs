@@ -7,18 +7,20 @@ using Xtml.Templating;
 
 namespace Xtml.Runtime;
 
-public ref struct Reconciler(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
+public ref struct Reconciler<T>(T mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
+    where T : IKeyholesClient, allows ref struct
 {
     public static readonly byte[] ROOT_KEY = "root"u8.ToArray();
+    private readonly T _mutator = mutator;
 
-    public static void Diff(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
+    public static void Diff(T mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
     {
         using var perf = Perf.Measure("Reconciler.Diff"); // TODO: Remove PerfCheck
 
         ref Keyhole oldFirst = ref oldBuffer[0];
         ref Keyhole newFirst = ref newBuffer[0];
 
-        var reconciler = new Reconciler(mutator, oldBuffer, newBuffer);
+        var reconciler = new Reconciler<T>(mutator, oldBuffer, newBuffer);
         reconciler.Recurse(ref oldFirst, ref newFirst);
     }
 
@@ -44,18 +46,18 @@ public ref struct Reconciler(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyho
         if (oldSpan.Length != newSpan.Length)
         {
             if (newParent.Type == KeyholeType.HtmlRaw)
-                mutator.SetValue(
+                _mutator.SetValue(
                     newParent.Key,
                     newSpan
                 );
             else if (newParent.TransitionModifier is null)
-                mutator.SetNode(
+                _mutator.SetNode(
                     newBuffer,
                     newParent.Key ?? ROOT_KEY, // Only HotReload can change the root string literal.,
                     newSpan
                 );
             else
-                mutator.SetNode(
+                _mutator.SetNode(
                     newBuffer,
                     newParent.Key,
                     newSpan,
@@ -101,18 +103,18 @@ public ref struct Reconciler(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyho
             if (!Object.ReferenceEquals(oldKeyhole.StringLiteral, newKeyhole.StringLiteral))
             {
                 if (newParent.Type == KeyholeType.HtmlRaw)
-                    mutator.SetValue(
+                    _mutator.SetValue(
                         newParent.Key,
                         newSpan
                     );
                 else if (newParent.TransitionModifier == null)
-                    mutator.SetNode(
+                    _mutator.SetNode(
                         newBuffer,
                         newParent.Key ?? ROOT_KEY, // Only HotReload can change the root string literal.
                         newSpan
                     );
                 else
-                    mutator.SetNode(
+                    _mutator.SetNode(
                         newBuffer,
                         newParent.Key,
                         newSpan,
@@ -190,7 +192,7 @@ public ref struct Reconciler(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyho
                 // (or raw text element like <title> or <textarea>).
                 // Find the start of this sequence, then grab the sequence's full span.
                 ref var startKeyhole = ref newBuffer[newParent.SequenceStart];
-                mutator.SetValue(newParent.Key, newBuffer.AsSpan(startKeyhole.Sequence));
+                _mutator.SetValue(newParent.Key, newBuffer.AsSpan(startKeyhole.Sequence));
 
                 // Short circuit.  No need to diff the rest of this span.
                 // This whole attribute sequence will be updated.
@@ -198,7 +200,7 @@ public ref struct Reconciler(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyho
             }
             else
             {
-                mutator.SetValue(newKeyhole.Key, in newKeyhole);
+                _mutator.SetValue(newKeyhole.Key, in newKeyhole);
             }
         }
 
@@ -233,7 +235,7 @@ public ref struct Reconciler(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyho
 
             if (shouldUseTransition && oldItem.Tag != newItem.Tag && oldItem.Tag is not null && newItem.Tag is not null)
             {
-                mutator.SetNode(
+                _mutator.SetNode(
                     newBuffer,
                     newItem.Key,
                     newBuffer.AsSpan(newItem.Sequence),
@@ -259,9 +261,9 @@ public ref struct Reconciler(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyho
                 var newItemSpan = newBuffer.AsSpan(newItem.Sequence);
 
                 if (newKeyhole.TransitionModifier is null || newItem.Tag is null)
-                    mutator.PushNode(newBuffer, newKeyhole.Key, newItemSpan, newItem.Key);
+                    _mutator.PushNode(newBuffer, newKeyhole.Key, newItemSpan, newItem.Key);
                 else
-                    mutator.PushNode(newBuffer, newKeyhole.Key, newItemSpan, newItem.Key, ("xtml-move-", newItem.Tag.GetHashCode()));
+                    _mutator.PushNode(newBuffer, newKeyhole.Key, newItemSpan, newItem.Key, ("xtml-move-", newItem.Tag.GetHashCode()));
             }
         }
         else if (oldItems.Length > newItems.Length)
@@ -273,9 +275,9 @@ public ref struct Reconciler(IKeyholesClient mutator, Keyhole[] oldBuffer, Keyho
             {
                 ref var item = ref oldItems[d];
                 if (newKeyhole.TransitionModifier is null || item.Tag is null)
-                    mutator.PopNode(item.Key);
+                    _mutator.PopNode(item.Key);
                 else
-                    mutator.PopNode(item.Key, ("xtml-move-", item.Tag.GetHashCode()));
+                    _mutator.PopNode(item.Key, ("xtml-move-", item.Tag.GetHashCode()));
             }
         }
 

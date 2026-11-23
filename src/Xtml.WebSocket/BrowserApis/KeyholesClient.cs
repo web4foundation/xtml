@@ -1,39 +1,37 @@
 using Xtml.Runtime;
 using Xtml.WebSocket.JsonRpc;
 
-namespace Xtml.WebSocket.DocumentObjectModel;
+namespace Xtml.WebSocket.BrowserApis;
 
-// Instead of a new-ing up another class, save an instantiation 
-// and explicitly implement on Bridge.
-internal partial class Bridge : IKeyholesClient
+internal ref struct KeyholesClient(Bridge bridge) : IKeyholesClient
 {
     void IKeyholesClient.SetValue(byte[] key, in Keyhole keyhole) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method(("keyholes['", key, "'].setValue"))
         .Param(in keyhole)
         .AsNotification();
 
     void IKeyholesClient.SetValue(byte[] key, Span<Keyhole> keyholes) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method(("keyholes['", key, "'].setValue"))
         .Param(keyholes)
         .AsNotification();
 
     void IKeyholesClient.SetNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method(("keyholes['", key, "'].setNode"))
         .Param(snapshot, keyholes)
         .AsNotification();
 
     void IKeyholesClient.SetNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, ValueTuple<string, byte[]> viewTransitionName) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method(("keyholes['", key, "'].setNode"))
         .Param(snapshot, keyholes)
         .Param(viewTransitionName)
         .AsNotification();
 
     void IKeyholesClient.SetNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, ValueTuple<string, int> viewTransitionNameNew, ValueTuple<string, int> viewTransitionNameOld) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method(("keyholes['", key, "'].setNode"))
         .Param(snapshot, keyholes)
         .Param(viewTransitionNameNew)
@@ -41,14 +39,14 @@ internal partial class Bridge : IKeyholesClient
         .AsNotification();
 
     void IKeyholesClient.PushNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, byte[] newKey) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method(("keyholes['", key, "'].pushNode"))
         .Param(snapshot, keyholes)
         .Param(newKey)
         .AsNotification();
 
     void IKeyholesClient.PushNode(Keyhole[] snapshot, byte[] key, Span<Keyhole> keyholes, byte[] newKey, ValueTuple<string, int> viewTransitionName) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method(("keyholes['", key, "'].pushNode"))
         .Param(snapshot, keyholes)
         .Param(newKey)
@@ -56,12 +54,12 @@ internal partial class Bridge : IKeyholesClient
         .AsNotification();
 
     void IKeyholesClient.PopNode(byte[] key) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method(("keyholes['", key, "'].popNode"))
         .AsNotification();
     
     void IKeyholesClient.PopNode(byte[] key, ValueTuple<string, int> viewTransitionName) => JsonRpcWriter
-        .Batch(this)
+        .Batch(bridge)
         .Method(("keyholes['", key, "'].popNode"))
         .Param(viewTransitionName)
         .AsNotification();

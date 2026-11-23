@@ -4,9 +4,9 @@ namespace Xtml.WebSocket.BrowserApis;
 
 internal partial class BrowserProxy(Bridge bridge)
 {
-    public Lazy<Window> Window = new(() => new Window(bridge));
-    public Lazy<Console> Console = new(() => new Console(bridge));
-    public Lazy<Document> Document = new(() => new Document(bridge));
+    public IWindow Window => this;
+    public IConsole Console => this;
+    public IDocument Document => this;
 
     public bool IsPropagationStopped => _currentPropagationID == _suppressPropagationID && _currentPropagationLevel >= _suppressPropagationLevel;
     private int _currentPropagationID;

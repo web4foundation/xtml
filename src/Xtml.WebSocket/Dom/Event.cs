@@ -617,7 +617,7 @@ internal struct LazyEvent(
     public string? Type => GetReference("type") as string;
     string IEvent.Type => Type ?? string.Empty;
 
-    public IWindow? View => browser.Window.Value;
+    public IWindow? View => browser;
     IWindow IViewSubset.View => View!;
 
     public int? Width => GetInt("width");

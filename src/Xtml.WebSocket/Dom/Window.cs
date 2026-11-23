@@ -3,26 +3,26 @@ using Xtml.WebSocket.JsonRpc;
 
 namespace Xtml.WebSocket.BrowserApis;
 
-internal class Window(Bridge bridge) : IWindow
+internal partial class BrowserProxy : IWindow
 {
     IWindow IWindow.Window => this;
-    public IConsole Console => bridge.Browser.Console.Value;
-    public IDocument Document => bridge.Browser.Document.Value;
+    IConsole IWindow.Console => this;
+    IDocument IWindow.Document => this;
 
     // TODO: I need a concept of undefined, because window.prompt(undefined, "the default") is different from window.prompt(null, "the default")
 
-    public void Alert(string message) => JsonRpcWriter
+    void IWindow.Alert(string message) => JsonRpcWriter
         .Batch(bridge)
         .Method("window.alert")
         .Param(message)
         .AsNotification();
 
-    public void Focus() => JsonRpcWriter
+    void IWindow.Focus() => JsonRpcWriter
         .Batch(bridge)
         .Method("window.focus")
         .AsNotification();
 
-    public Task<string?> Prompt(string? message, string? defaultValue) => JsonRpcWriter
+    Task<string?> IWindow.Prompt(string? message, string? defaultValue) => JsonRpcWriter
         .Batch(bridge)
         .Method("window.prompt")
         .Param(message)

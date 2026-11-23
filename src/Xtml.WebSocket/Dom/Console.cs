@@ -3,7 +3,7 @@ using Xtml.WebSocket.JsonRpc;
 
 namespace Xtml.WebSocket.BrowserApis;
 
-internal class Console(Bridge bridge) : IConsole
+internal partial class BrowserProxy : IConsole
 {
     // TODO: How to support object?
     // TODO: Tests still needed for each one.

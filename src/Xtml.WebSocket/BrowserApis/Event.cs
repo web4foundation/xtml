@@ -3,9 +3,9 @@ using System.Buffers;
 using System.Drawing;
 using System.Text.Json;
 using Microsoft.Extensions.ObjectPool;
-using Xtml.Dom;
-using Xtml.Dom.Events;
-using Xtml.Dom.Events.Subsets;
+using Xtml.BrowserApis;
+using Xtml.BrowserApis.Events;
+using Xtml.BrowserApis.Events.Subsets;
 using Xtml.WebSocket.Buffers;
 
 namespace Xtml.WebSocket.BrowserApis;
@@ -367,7 +367,7 @@ internal struct LazyEvent(
     bool IEvent.Bubbles => Bubbles ?? default;
 
     public Button? Button => GetInt("button") switch { int v => (Button)v, _ => null };
-    Button IButtonsSubset.Button => Button ?? Xtml.Dom.Events.Button.Main;
+    Button IButtonsSubset.Button => Button ?? Xtml.BrowserApis.Events.Button.Main;
 
     public ButtonFlag? Buttons => GetInt("button") switch { int v => (ButtonFlag)v, _ => null };
     ButtonFlag IButtonsSubset.Buttons => Buttons ?? ButtonFlag.None;
@@ -409,7 +409,7 @@ internal struct LazyEvent(
     bool IEvent.DefaultPrevented => DefaultPrevented ?? default;
 
     public DeltaMode? DeltaMode => GetInt("deltaMode") switch { int v => (DeltaMode)v, _ => null };
-    DeltaMode IDeltasSubset.DeltaMode => DeltaMode ?? Xtml.Dom.Events.DeltaMode.Pixel;
+    DeltaMode IDeltasSubset.DeltaMode => DeltaMode ?? Xtml.BrowserApis.Events.DeltaMode.Pixel;
 
     public double? DeltaX => GetDouble("deltaX");
     double IDeltasSubset.DeltaX => DeltaX ?? default;
@@ -430,7 +430,7 @@ internal struct LazyEvent(
     DOMException IErrorSubset.Error => Error ?? DOMException.Empty;
 
     public EventPhase? EventPhase => GetInt("eventPhase") switch { int v => (EventPhase)v, _ => null };
-    EventPhase IEvent.EventPhase => EventPhase ?? Xtml.Dom.Events.EventPhase.None;
+    EventPhase IEvent.EventPhase => EventPhase ?? Xtml.BrowserApis.Events.EventPhase.None;
 
     public string? FileName => GetReference("fileName") as string;
     string IErrorSubset.FileName => FileName ?? string.Empty;

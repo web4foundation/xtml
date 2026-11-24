@@ -1,4 +1,4 @@
-namespace Xtml.Dom.Events;
+namespace Xtml.BrowserApis.Events;
 
 public interface IBeforeUnloadEvent
     : IEvent

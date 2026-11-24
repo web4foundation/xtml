@@ -1,7 +1,7 @@
 using System.Drawing;
-using Xtml.Dom;
-using Xtml.Dom.Events;
-using Xtml.Dom.Events.Subsets;
+using Xtml.BrowserApis;
+using Xtml.BrowserApis.Events;
+using Xtml.BrowserApis.Events.Subsets;
 
 namespace Xtml.WebAssembly;
 
@@ -103,7 +103,7 @@ public partial record struct WebAssemblyEvent(
     double IAnglesSubset.AzimuthAngle => AzimuthAngle ?? default;
     double IDeviceOrientationSubset.Beta => Beta ?? default;
     bool IEvent.Bubbles => Bubbles ?? default;
-    Button IButtonsSubset.Button => Button ?? Xtml.Dom.Events.Button.Main;
+    Button IButtonsSubset.Button => Button ?? Xtml.BrowserApis.Events.Button.Main;
     ButtonFlag IButtonsSubset.Buttons => Buttons ?? ButtonFlag.None;
     bool IEvent.Cancelable => Cancelable ?? default;
     TouchPoint[] ITouchesSubset.ChangedTouches => ChangedTouches ?? [];
@@ -117,14 +117,14 @@ public partial record struct WebAssemblyEvent(
     string IDataSubset.Data => Data ?? string.Empty;
     DataTransferContainer IDataTransferSubset.DataTransfer => DataTransfer ?? DataTransferContainer.Empty;
     bool IEvent.DefaultPrevented => DefaultPrevented ?? default;
-    DeltaMode IDeltasSubset.DeltaMode => DeltaMode ?? Xtml.Dom.Events.DeltaMode.Pixel;
+    DeltaMode IDeltasSubset.DeltaMode => DeltaMode ?? Xtml.BrowserApis.Events.DeltaMode.Pixel;
     double IDeltasSubset.DeltaX => DeltaX ?? default;
     double IDeltasSubset.DeltaY => DeltaY ?? default;
     double IDeltasSubset.DeltaZ => DeltaZ ?? default;
     long IDetailSubset.Detail => Detail ?? default;
     double IAnimationSubset.ElapsedTime => ElapsedTime ?? default;
     DOMException IErrorSubset.Error => Error ?? DOMException.Empty;
-    EventPhase IEvent.EventPhase => EventPhase ?? Xtml.Dom.Events.EventPhase.None;
+    EventPhase IEvent.EventPhase => EventPhase ?? Xtml.BrowserApis.Events.EventPhase.None;
     string IErrorSubset.FileName => FileName ?? string.Empty;
     double IDeviceOrientationSubset.Gamma => Gamma ?? default;
     int IWidthHeightSubset.Height => Height ?? default;

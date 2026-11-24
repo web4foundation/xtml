@@ -2,7 +2,7 @@ using System.Buffers;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using Xtml.Templating;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 
 namespace Xtml.Runtime.Composers;
 

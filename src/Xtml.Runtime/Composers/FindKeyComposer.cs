@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 using Xtml.Templating;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 
 namespace Xtml.Runtime.Composers;
 

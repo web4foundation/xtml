@@ -1,6 +1,6 @@
-using static Xtml.Dom.Events.Aliases.Subsets;
+using static Xtml.BrowserApis.Events.Aliases.Subsets;
 
-namespace Xtml.Dom.Events.Subsets;
+namespace Xtml.BrowserApis.Events.Subsets;
 
 public interface IModifiersSubset : ISubset, ModifierAlt, ModifierCtrl, ModifierMeta, ModifierShift, IViewSubset
 {

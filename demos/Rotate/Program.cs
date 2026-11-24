@@ -1,7 +1,7 @@
 using System.Drawing;
 using Xtml.Templating;
 using Xtml.WebSocket;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 using System.Security.Cryptography.X509Certificates;
 
 var builder = WebApplication.CreateBuilder(args);

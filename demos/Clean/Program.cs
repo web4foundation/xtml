@@ -1,7 +1,7 @@
+global using Xtml.BrowserApis;
 using System.Drawing;
 using Xtml.Templating;
 using Xtml.WebSocket;
-using Xtml.Dom;
 
 var builder = WebApplication.CreateBuilder(args);
 var app = builder.Build();

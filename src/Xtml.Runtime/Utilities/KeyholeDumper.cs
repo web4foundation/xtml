@@ -1,5 +1,5 @@
 using System.Text;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 using Xtml.Templating;
 
 namespace Xtml.Runtime.Utilities;

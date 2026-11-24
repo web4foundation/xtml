@@ -1,6 +1,6 @@
 using System.Buffers;
 using System.Text.Json;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 using Xtml.Runtime.Utilities;
 using Xtml.WebSocket.BrowserApis;
 

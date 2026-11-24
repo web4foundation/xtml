@@ -1,7 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
-using Xtml.Dom.EventListeners;
-using Xtml.Dom;
+using Xtml.BrowserApis.EventListeners;
+using Xtml.BrowserApis;
 
 namespace Xtml.Runtime;
 

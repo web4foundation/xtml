@@ -1,6 +1,6 @@
 using System.Buffers;
 using System.Drawing;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 
 namespace Xtml.Templating.Composers;
 

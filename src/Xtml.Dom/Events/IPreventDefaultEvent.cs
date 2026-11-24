@@ -1,6 +1,6 @@
-using static Xtml.Dom.Events.Aliases.Subsets;
+using static Xtml.BrowserApis.Events.Aliases.Subsets;
 
-namespace Xtml.Dom.Events;
+namespace Xtml.BrowserApis.Events;
 
 public interface IPreventDefaultEvent : IEvent, PreventDefault,
     IDragEvent,

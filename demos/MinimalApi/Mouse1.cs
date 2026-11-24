@@ -3,7 +3,7 @@
 #:project ../../src/Xtml.WebSocket/Xtml.WebSocket.csproj
 
 using Xtml.WebSocket;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 
 var app = WebApplication.Create(args);
 

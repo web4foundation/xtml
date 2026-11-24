@@ -1,6 +1,6 @@
 using System.Drawing;
 
-namespace Xtml.Dom.Events;
+namespace Xtml.BrowserApis.Events;
 
 /// <summary>
 /// The acceleration property is an object providing information about acceleration on three axis. Each axis is represented with its own property:

@@ -1,4 +1,4 @@
-namespace Xtml.Dom;
+namespace Xtml.BrowserApis;
 
 public interface IDocument
 {

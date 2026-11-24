@@ -1,4 +1,4 @@
-namespace Xtml.Dom.EventListeners;
+namespace Xtml.BrowserApis.EventListeners;
 
 public interface IMouseEventListeners
 {

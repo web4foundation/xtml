@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 using Xtml.Runtime;
 using Xtml.Runtime.Utilities;
 using Xtml.WebSocket.JsonRpc;

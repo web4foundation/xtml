@@ -1,4 +1,4 @@
-using Xtml.Dom;
+using Xtml.BrowserApis;
 using Xtml.WebSocket.JsonRpc;
 
 namespace Xtml.WebSocket.BrowserApis;

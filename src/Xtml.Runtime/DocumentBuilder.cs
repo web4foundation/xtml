@@ -1,6 +1,6 @@
-using Xtml.Dom.EventListeners;
+using Xtml.BrowserApis.EventListeners;
 using System.Drawing;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 
 namespace Xtml.Runtime;
 

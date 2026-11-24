@@ -1,9 +1,9 @@
 #pragma warning disable IDE1006 // Naming Styles
 
 using System.Drawing;
-using Xtml.Dom.Events;
+using Xtml.BrowserApis.Events;
 
-namespace Xtml.Dom;
+namespace Xtml.BrowserApis;
 
 /// <summary>
 /// A DOM event

@@ -1,8 +1,8 @@
 #pragma warning disable IDE1006 // Naming Styles
 
-using Xtml.Dom.Events.Subsets;
+using Xtml.BrowserApis.Events.Subsets;
 
-namespace Xtml.Dom.Events;
+namespace Xtml.BrowserApis.Events;
 
 public interface Aliases
 {

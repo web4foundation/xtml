@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Runtime.CompilerServices;
-using Xtml.Dom;
-using Xtml.Dom.Events.Subsets;
+using Xtml.BrowserApis;
+using Xtml.BrowserApis.Events.Subsets;
 
 namespace Xtml.Templating;
 

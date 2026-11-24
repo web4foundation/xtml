@@ -1,7 +1,7 @@
 using System.Drawing;
 using Xtml.Templating;
 using Xtml.Templating.Composers;
-using Xtml.Dom;
+using Xtml.BrowserApis;
 
 namespace Xtml.Runtime.Composers;
 

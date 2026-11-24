@@ -1,4 +1,4 @@
-namespace Xtml.Dom.Events.Subsets;
+namespace Xtml.BrowserApis.Events.Subsets;
 
 public interface IStatesSubset : ISubset, IViewSubset
 {

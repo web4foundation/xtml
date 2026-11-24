@@ -16,7 +16,7 @@
     <Project Path="demos/Website/Website.csproj" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/Xtml.Dom/Xtml.Dom.csproj" />
+    <Project Path="src/Xtml.BrowserApis/Xtml.BrowserApis.csproj" />
     <Project Path="src/Xtml.Runtime/Xtml.Runtime.csproj" />
     <Project Path="src/Xtml.SourceGenerator/Xtml.SourceGenerator.csproj" />
     <Project Path="src/Xtml.Templating/Xtml.Templating.csproj" />

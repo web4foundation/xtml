@@ -24,8 +24,8 @@ internal partial class Bridge
     private Keyhole[] _snapshot;
     private readonly Channel<JsonRpcMessageOrAsyncCallback> _eventLoopChannel;
     private readonly Channel<ReadOnlySequence<byte>> _outputChannel;
+    private readonly Stopwatch _lastReconcile = Stopwatch.StartNew();
     private Dictionary<Guid, object>? _pendingRequests = null;
-    private Stopwatch _lastReconcile = Stopwatch.StartNew();
 
     public Guid WindowId { get; init; }
     public BrowserProxy Browser { get; init; }

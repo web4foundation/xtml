@@ -69,7 +69,7 @@ internal ref partial struct JsonRpcWriter
     internal ref struct FlushDisposable : IDisposable
     {
         private readonly Bridge _bridge;
-        private readonly JsonRpcWriter.HybridWriter _writer;
+        private readonly HybridWriter _writer;
 
         public FlushDisposable(Bridge bridge)
         {

@@ -1,8 +1,3 @@
-using System.Text.Encodings.Web;
-using System.Text.Json;
-using System.Diagnostics;
-using Xtml.WebSocket.Buffers;
-
 namespace Xtml.WebSocket.JsonRpc;
 
 internal ref partial struct JsonRpcWriter

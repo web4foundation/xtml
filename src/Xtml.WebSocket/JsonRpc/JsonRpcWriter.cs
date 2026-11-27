@@ -18,7 +18,7 @@ internal ref partial struct JsonRpcWriter
         public Stopwatch LastFlush { get; set; } = Stopwatch.StartNew();
     }
 
-    public static MessageBuilder Batch(Bridge bridge)
+    public static MessageBuilder Current(Bridge bridge)
     {
         var writer = GetWriter();
         if (writer.Utf8Json.BytesCommitted + writer.Utf8Json.BytesPending == 0)

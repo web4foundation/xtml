@@ -102,7 +102,7 @@ internal struct KeyholesServer(Bridge bridge, ILogger logger) : IKeyholesServer
         _requestId = null;
 
         JsonRpcWriter
-            .Batch(bridge)
+            .Current(bridge)
             .Result("pong")
             .AsResponse(id);
     }

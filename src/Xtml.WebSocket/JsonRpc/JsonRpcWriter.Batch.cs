@@ -13,12 +13,11 @@ internal ref partial struct JsonRpcWriter
 
     internal class Batch
     {
-        // private static readonly ObjectPool<Batch> s_pool = ObjectPool.Create<Batch>();
+        private static readonly ObjectPool<Batch> s_pool = ObjectPool.Create<Batch>();
 
         public PooledSequenceBufferWriter<byte> Buffer { get; init; }
         public Utf8JsonWriter Utf8Json { get; init; }
-        // public bool IsBatching => t_current != null;
-        public bool IsBatching { get; set; } = false;
+        public bool IsBatching => t_current != null;
 
         // public Stopwatch LastFlush { get; set; } = Stopwatch.StartNew();
 
@@ -30,14 +29,14 @@ internal ref partial struct JsonRpcWriter
             // https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/character-encoding
         }
 
-        // public static Batch Get()
-        // {
-        //     return s_pool.Get();
-        // }
+        public static Batch Get()
+        {
+            return s_pool.Get();
+        }
 
-        // public void Return()
-        // {
-        //     s_pool.Return(this);
-        // }
+        public void Return()
+        {
+            s_pool.Return(this);
+        }
     }
 }

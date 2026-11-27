@@ -12,17 +12,10 @@ internal ref partial struct JsonRpcWriter
 
     public static MessageBuilder Current(Bridge bridge)
     {
-        var batch = GetWriter();
+        var batch = t_current ?? Batch.Get();
         if (batch.Utf8Json.BytesCommitted + batch.Utf8Json.BytesPending == 0)
             batch.Utf8Json.WriteStartArray();
         return new(bridge, batch);
-    }
-
-    private static Batch GetWriter()
-    {
-        if (t_current == null)
-            t_current = new Batch();
-        return t_current;
     }
 
     private static void Flush(Bridge bridge, Batch batch)
@@ -39,6 +32,7 @@ internal ref partial struct JsonRpcWriter
         bridge.FlushToWebSocket(output);
 
         // batch.LastFlush.Restart();
+        batch.Return();
     }
 
     private static void CourtesyFlush(Bridge bridge, Batch batch)
@@ -59,9 +53,11 @@ internal ref partial struct JsonRpcWriter
 
         public FlushDisposable(Bridge bridge)
         {
+            if (t_current is not null)
+                throw new InvalidOperationException("A batch is already active on this thread.  This should be impossible");
+            
             _bridge = bridge;
-            _batch = GetWriter();
-            _batch.IsBatching = true;
+            _batch = t_current = Batch.Get();
             // _batch.LastFlush.Restart();
         }
 
@@ -71,7 +67,7 @@ internal ref partial struct JsonRpcWriter
             // The batch is over and the next event listener could be many dozens of milliseconds away.
             _bridge.Reconcile();
             Flush(_bridge, _batch);
-            _batch.IsBatching = false;
+            t_current = null;
         }
     }
 }

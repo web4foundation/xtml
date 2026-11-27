@@ -10,14 +10,6 @@ internal ref partial struct JsonRpcWriter
     // TODO: Make this configurable?
     private const int COURTESY_FLUSH_THRESHOLD = 2 << 15; // 64k
 
-    [ThreadStatic]
-    private static Batch? t_current;
-    public record Batch(Utf8JsonWriter Utf8Json, PooledSequenceBufferWriter<byte> Buffer)
-    {
-        public bool IsBatching { get; set; } = false;
-        public Stopwatch LastFlush { get; set; } = Stopwatch.StartNew();
-    }
-
     public static MessageBuilder Current(Bridge bridge)
     {
         var batch = GetWriter();
@@ -29,13 +21,7 @@ internal ref partial struct JsonRpcWriter
     private static Batch GetWriter()
     {
         if (t_current == null)
-        {
-            var bufferWriter = new PooledSequenceBufferWriter<byte>();
-            var utf8JsonWriter = new Utf8JsonWriter(bufferWriter, new () { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-            // It's OK to relax escaping since WebSockets are ALWAYS UTF-8 (when not binary). ^
-            // https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/character-encoding
-            t_current = new Batch(utf8JsonWriter, bufferWriter);
-        }
+            t_current = new Batch();
         return t_current;
     }
 

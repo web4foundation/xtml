@@ -6,11 +6,11 @@ namespace Xtml.WebSocket.JsonRpc;
 
 internal ref partial struct JsonRpcWriter
 {
-    private static void WriteRawKey(HybridWriter writer, byte[] key)
+    private static void WriteRawKey(Batch batch, byte[] key)
     {
-        writer.Utf8Json.Flush();
-        key.CopyTo(writer.Buffer.GetSpan(key.Length));
-        writer.Buffer.Advance(key.Length);
+        batch.Utf8Json.Flush();
+        key.CopyTo(batch.Buffer.GetSpan(key.Length));
+        batch.Buffer.Advance(key.Length);
     }
 
     public ref partial struct ParamsBuilder
@@ -19,7 +19,7 @@ internal ref partial struct JsonRpcWriter
         {
             TryStartParamsArray();
 
-            writer.Utf8Json.WriteStringValue(key);
+            batch.Utf8Json.WriteStringValue(key);
             return this;
         }
 
@@ -30,13 +30,13 @@ internal ref partial struct JsonRpcWriter
             if (value.Type == KeyholeType.Boolean)
             {
                 // HTML treats boolean attributes differently.  Send without quotes.
-                writer.Utf8Json.WriteBooleanValue(value.Boolean);
+                batch.Utf8Json.WriteBooleanValue(value.Boolean);
             }
             else
             {
-                writer.Utf8Json.WriteStringValueSegment("", false);
+                batch.Utf8Json.WriteStringValueSegment("", false);
                 WriteMutableKeyholeValue(in value);
-                writer.Utf8Json.WriteStringValueSegment("", true);
+                batch.Utf8Json.WriteStringValueSegment("", true);
             }
 
             return this;
@@ -47,7 +47,7 @@ internal ref partial struct JsonRpcWriter
             TryStartParamsArray();
 
             WriteRawSequence(value);
-            writer.Utf8Json.WriteStringValueSegment("", true);
+            batch.Utf8Json.WriteStringValueSegment("", true);
 
             return this;
         }
@@ -57,7 +57,7 @@ internal ref partial struct JsonRpcWriter
             TryStartParamsArray();
 
             WriteHtml(snapshot, keyholes: htmlFragment);
-            writer.Utf8Json.WriteStringValueSegment("", true);
+            batch.Utf8Json.WriteStringValueSegment("", true);
 
             return this;
         }
@@ -66,9 +66,9 @@ internal ref partial struct JsonRpcWriter
         {
             TryStartParamsArray();
 
-            writer.Utf8Json.WriteStringValueSegment(viewTransitionName.Item1, false);
-            WriteRawKey(writer, viewTransitionName.Item2);
-            writer.Utf8Json.WriteStringValueSegment("", true);
+            batch.Utf8Json.WriteStringValueSegment(viewTransitionName.Item1, false);
+            WriteRawKey(batch, viewTransitionName.Item2);
+            batch.Utf8Json.WriteStringValueSegment("", true);
 
             return this;
         }
@@ -79,10 +79,10 @@ internal ref partial struct JsonRpcWriter
 
             Span<char> strInt = stackalloc char[11]; // max int length
 
-            writer.Utf8Json.WriteStringValueSegment(viewTransitionName.Item1, false);
+            batch.Utf8Json.WriteStringValueSegment(viewTransitionName.Item1, false);
             if (viewTransitionName.Item2.TryFormat(strInt, out int length))
-                writer.Utf8Json.WriteStringValueSegment(strInt[..length], false);
-            writer.Utf8Json.WriteStringValueSegment("", true);
+                batch.Utf8Json.WriteStringValueSegment(strInt[..length], false);
+            batch.Utf8Json.WriteStringValueSegment("", true);
 
             return this;
         }
@@ -94,10 +94,10 @@ internal ref partial struct JsonRpcWriter
             {
                 case KeyholeType.String:
                     // Must use jsonWriter to write this string with the proper json encoding.
-                    writer.Utf8Json.WriteStringValueSegment(keyhole.String, false);
+                    batch.Utf8Json.WriteStringValueSegment(keyhole.String, false);
                     return;
                 case KeyholeType.Boolean:
-                    writer.Utf8Json.WriteStringValueSegment(keyhole.Boolean ? "true" : "false", false);
+                    batch.Utf8Json.WriteStringValueSegment(keyhole.Boolean ? "true" : "false", false);
                     return;
             }
 
@@ -105,57 +105,57 @@ internal ref partial struct JsonRpcWriter
             // Flush the JSON writer and switch to the raw buffer writer.
             // Use IUtf8SpanFormattable.TryFormat() to write without allocating memory.
 
-            writer.Utf8Json.Flush();
+            batch.Utf8Json.Flush();
             int length = 0;
             int sizeHint = 30;
             switch (keyhole.Type)
             {
                 case KeyholeType.Integer:
-                    while (!keyhole.Integer.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.Integer.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.Long:
-                    while (!keyhole.Long.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.Long.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.Float:
-                    while (!keyhole.Float.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.Float.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.Double:
-                    while (!keyhole.Double.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.Double.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.Decimal:
-                    while (!keyhole.Decimal.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.Decimal.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.DateTime:
-                    while (!keyhole.DateTime.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.DateTime.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.DateOnly:
-                    while (!keyhole.DateOnly.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.DateOnly.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.TimeSpan:
-                    while (!keyhole.TimeSpan.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.TimeSpan.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.TimeOnly:
-                    while (!keyhole.TimeOnly.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.TimeOnly.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.Color:
-                    while (!keyhole.Color.TryFormat(writer.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
+                    while (!keyhole.Color.TryFormat(batch.Buffer.GetSpan(sizeHint), out length, keyhole.FormatModifier))
                         GrowSizeHint(ref sizeHint);
                     break;
                 case KeyholeType.Uri:
                     // TODO: Fix memory allocation and support format string?
-                    writer.Buffer.Write(keyhole.Uri!.ToString());
+                    batch.Buffer.Write(keyhole.Uri!.ToString());
                     break;
             }
-            writer.Buffer.Advance(length);
+            batch.Buffer.Advance(length);
         }
 
         private static void GrowSizeHint(ref int sizeHint)
@@ -233,11 +233,11 @@ internal ref partial struct JsonRpcWriter
             }
 
             ref var lastLiteral = ref keyholes[^1];
-            writer.Utf8Json.WriteStringValueSegment(lastLiteral.StringLiteral, false);
+            batch.Utf8Json.WriteStringValueSegment(lastLiteral.StringLiteral, false);
 
             #if DEBUG
             if (isHeaderOmitted)
-                writer.Utf8Json.WriteStringValueSegment("</body></html>", false);
+                batch.Utf8Json.WriteStringValueSegment("</body></html>", false);
             #endif
         }
 
@@ -246,7 +246,7 @@ internal ref partial struct JsonRpcWriter
             var isAttribute = literal.EndsWith('=');
             if (!isAttribute || keyhole.Type != KeyholeType.Boolean)
             {
-                writer.Utf8Json.WriteStringValueSegment(literal, false);
+                batch.Utf8Json.WriteStringValueSegment(literal, false);
                 attributeName = default;
                 return isAttribute;
             }
@@ -256,7 +256,7 @@ internal ref partial struct JsonRpcWriter
             // The only way to make a boolean attribute false is to omit it entirely.
             var span = literal.AsSpan();
             int indexBeforeAttribute = span.LastIndexOf(' ');
-            writer.Utf8Json.WriteStringValueSegment(
+            batch.Utf8Json.WriteStringValueSegment(
                 keyhole.Boolean 
                     ? span[..^1] // Writes the whole literal which includes the attribute name up to the equals sign.
                     : span[..indexBeforeAttribute], // Writes the literal but excludes the attribute name and equals sign
@@ -267,19 +267,19 @@ internal ref partial struct JsonRpcWriter
 
         private void WriteListener(byte[] key, string? trim)
         {
-            writer.Utf8Json.WriteStringValueSegment("\"keyholes['", false);
-            WriteRawKey(writer, key);
+            batch.Utf8Json.WriteStringValueSegment("\"keyholes['", false);
+            WriteRawKey(batch, key);
             if (trim == string.Empty)
             {
-                writer.Utf8Json.WriteStringValueSegment("'].dispatchEvent(event)\" key:", false);
+                batch.Utf8Json.WriteStringValueSegment("'].dispatchEvent(event)\" key:", false);
             }
             else
             {
-                writer.Utf8Json.WriteStringValueSegment("'].dispatchEvent(event,'", false);
-                writer.Utf8Json.WriteStringValueSegment(trim ?? "*", false);
-                writer.Utf8Json.WriteStringValueSegment("')\" key:", false);
+                batch.Utf8Json.WriteStringValueSegment("'].dispatchEvent(event,'", false);
+                batch.Utf8Json.WriteStringValueSegment(trim ?? "*", false);
+                batch.Utf8Json.WriteStringValueSegment("')\" key:", false);
             }
-            WriteRawKey(writer, key);
+            WriteRawKey(batch, key);
         }
 
         private void WriteRawSequence(Span<Keyhole> keyholes)
@@ -291,7 +291,7 @@ internal ref partial struct JsonRpcWriter
                 switch (keyhole.Type)
                 {
                     case KeyholeType.StringLiteral:
-                        writer.Utf8Json.WriteStringValueSegment(keyhole.StringLiteral, false);
+                        batch.Utf8Json.WriteStringValueSegment(keyhole.StringLiteral, false);
                         break;
                     // The rest are the mutable keyhole values.  They might use format strings.
                     default:
@@ -305,13 +305,13 @@ internal ref partial struct JsonRpcWriter
         {
             if (isAttribute)
             {
-                writer.Utf8Json.WriteStringValueSegment("\"", false);
+                batch.Utf8Json.WriteStringValueSegment("\"", false);
             }
             else
             {
-                writer.Utf8Json.WriteStringValueSegment("<!--key:", false);
-                WriteRawKey(writer, key);
-                writer.Utf8Json.WriteStringValueSegment("-->", false);
+                batch.Utf8Json.WriteStringValueSegment("<!--key:", false);
+                WriteRawKey(batch, key);
+                batch.Utf8Json.WriteStringValueSegment("-->", false);
             }
         }
 
@@ -319,32 +319,32 @@ internal ref partial struct JsonRpcWriter
         {
             if (isAttribute)
             {
-                writer.Utf8Json.WriteStringValueSegment("\" key:", false);
-                WriteRawKey(writer, key);
+                batch.Utf8Json.WriteStringValueSegment("\" key:", false);
+                WriteRawKey(batch, key);
             }
             else
             {
-                writer.Utf8Json.WriteStringValueSegment("<!--/key:", false);
-                WriteRawKey(writer, key);
-                writer.Utf8Json.WriteStringValueSegment("-->", false);
+                batch.Utf8Json.WriteStringValueSegment("<!--/key:", false);
+                WriteRawKey(batch, key);
+                batch.Utf8Json.WriteStringValueSegment("-->", false);
             }
         }
 
         private void WriteCloseSentinel(byte[] key, scoped ReadOnlySpan<char> booleanAttributeName)
         {
             // Booleans are "special" (see WriteStringLiteral).
-            writer.Utf8Json.WriteStringValueSegment(" key:", false);
-            WriteRawKey(writer, key);
-            writer.Utf8Json.WriteStringValueSegment("=\"", false);
-            writer.Utf8Json.WriteStringValueSegment(booleanAttributeName, false);
-            writer.Utf8Json.WriteStringValueSegment("\"", false);
+            batch.Utf8Json.WriteStringValueSegment(" key:", false);
+            WriteRawKey(batch, key);
+            batch.Utf8Json.WriteStringValueSegment("=\"", false);
+            batch.Utf8Json.WriteStringValueSegment(booleanAttributeName, false);
+            batch.Utf8Json.WriteStringValueSegment("\"", false);
         }
 
         private void WriteVoidSentinel(byte[] key)
         {
-            writer.Utf8Json.WriteStringValueSegment("<!--key:", false);
-            WriteRawKey(writer, key);
-            writer.Utf8Json.WriteStringValueSegment(" /-->", false);
+            batch.Utf8Json.WriteStringValueSegment("<!--key:", false);
+            WriteRawKey(batch, key);
+            batch.Utf8Json.WriteStringValueSegment(" /-->", false);
         }
 
         private void WriteTransition(byte[] parentKey, string? transition)
@@ -358,7 +358,7 @@ internal ref partial struct JsonRpcWriter
             
             // TODO: Many allocations below.
             string k = System.Text.Encoding.UTF8.GetString(key);
-            writer.Utf8Json.WriteStringValueSegment($$"""
+            batch.Utf8Json.WriteStringValueSegment($$"""
                 <style>
                     ::view-transition-group(xtml-fwd-{{k}}, xtml-rev-{{k}}) { animation: none; }
                     ::view-transition-new(xtml-fwd-{{k}}) { width: auto; height: auto; animation: 300ms ease-in-out {{transition}}-in; }
@@ -378,13 +378,13 @@ internal ref partial struct JsonRpcWriter
             bool isHeadOmitted = headIndex < 0;
             headIndex += 6;
 
-            writer.Utf8Json.WriteStringValueSegment(
+            batch.Utf8Json.WriteStringValueSegment(
                 isHeadOmitted 
                     ? "<!doctype html><html><head>" 
                     : literal[..headIndex], 
                 false);
             
-            writer.Utf8Json.WriteStringValueSegment("""
+            batch.Utf8Json.WriteStringValueSegment("""
 
                     <!-- Injected by XTML -->
                     <script src="/_app/websocket/ui.js" defer></script>
@@ -398,16 +398,16 @@ internal ref partial struct JsonRpcWriter
             var listeners = bridge?.RootEventListeners ?? [];
             if (listeners?.Count > 0)
             {
-                writer.Utf8Json.WriteStringValueSegment("\n\n<script>\n", false);
+                batch.Utf8Json.WriteStringValueSegment("\n\n<script>\n", false);
 
                 foreach (var listener in listeners)
-                    writer.Utf8Json.WriteStringValueSegment($"  {listener.Html ?? ""}\n", false);
+                    batch.Utf8Json.WriteStringValueSegment($"  {listener.Html ?? ""}\n", false);
 
-                writer.Utf8Json.WriteStringValueSegment("</script>\n\n", false);
+                batch.Utf8Json.WriteStringValueSegment("</script>\n\n", false);
             }
 
             if (isHeadOmitted)
-                writer.Utf8Json.WriteStringValueSegment("</head><body>", false);
+                batch.Utf8Json.WriteStringValueSegment("</head><body>", false);
             else
                 literal = literal[headIndex..];
 

@@ -2,14 +2,14 @@ namespace Xtml.WebSocket.JsonRpc;
 
 internal ref partial struct JsonRpcWriter
 {
-    public ref partial struct ResultBuilder(Bridge bridge, HybridWriter writer)
+    public ref partial struct ResultBuilder(Bridge bridge, Batch batch)
     {
         public void AsResponse(int id)
         {
-            writer.Utf8Json.WriteNumber("id", id);
-            writer.Utf8Json.WriteEndObject();
+            batch.Utf8Json.WriteNumber("id", id);
+            batch.Utf8Json.WriteEndObject();
             
-            CourtesyFlush(bridge, writer);
+            CourtesyFlush(bridge, batch);
         }
     }
 }

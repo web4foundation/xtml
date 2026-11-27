@@ -5,7 +5,7 @@ namespace Xtml.WebSocket.JsonRpc;
 
 internal ref partial struct JsonRpcWriter
 {
-    public ref partial struct ParamsBuilder(Bridge bridge, HybridWriter writer)
+    public ref partial struct ParamsBuilder(Bridge bridge, Batch batch)
     {
         private bool _isFirstParam = true;
 
@@ -13,7 +13,7 @@ internal ref partial struct JsonRpcWriter
         {
             TryStartParamsArray();
 
-            writer.Utf8Json.WriteStringValue(value);
+            batch.Utf8Json.WriteStringValue(value);
 
             return this;
         }
@@ -23,9 +23,9 @@ internal ref partial struct JsonRpcWriter
             TryStartParamsArray();
 
             if (value.HasValue)
-                writer.Utf8Json.WriteBooleanValue(value.Value);
+                batch.Utf8Json.WriteBooleanValue(value.Value);
             else
-                writer.Utf8Json.WriteNullValue();
+                batch.Utf8Json.WriteNullValue();
 
             return this;
         }
@@ -37,15 +37,15 @@ internal ref partial struct JsonRpcWriter
             if (value.HasValue)
                 switch (value.Value)
                 {
-                    case int i: writer.Utf8Json.WriteNumberValue(i); break;
-                    case long l: writer.Utf8Json.WriteNumberValue(l); break;
-                    case float f: writer.Utf8Json.WriteNumberValue(f); break;
-                    case double d: writer.Utf8Json.WriteNumberValue(d); break;
-                    case decimal m: writer.Utf8Json.WriteNumberValue(m); break;
+                    case int i: batch.Utf8Json.WriteNumberValue(i); break;
+                    case long l: batch.Utf8Json.WriteNumberValue(l); break;
+                    case float f: batch.Utf8Json.WriteNumberValue(f); break;
+                    case double d: batch.Utf8Json.WriteNumberValue(d); break;
+                    case decimal m: batch.Utf8Json.WriteNumberValue(m); break;
                     default: throw new NotSupportedException($"Type {typeof(T)} is not supported");
                 }
             else
-                writer.Utf8Json.WriteNullValue();
+                batch.Utf8Json.WriteNullValue();
 
             return this;
         }
@@ -55,7 +55,7 @@ internal ref partial struct JsonRpcWriter
             TryStartParamsArray();
             
             if (value is not null)
-                writer.Utf8Json.WriteStringValue(value);
+                batch.Utf8Json.WriteStringValue(value);
 
             return this;
         }
@@ -65,7 +65,7 @@ internal ref partial struct JsonRpcWriter
             TryStartParamsArray();
 
             foreach (var param in @params)
-                writer.Utf8Json.WriteStringValue(param);
+                batch.Utf8Json.WriteStringValue(param);
 
             return this;
         }
@@ -74,9 +74,9 @@ internal ref partial struct JsonRpcWriter
         {
             TryEndParamsArray();
 
-            writer.Utf8Json.WriteEndObject();
+            batch.Utf8Json.WriteEndObject();
 
-            CourtesyFlush(bridge, writer);
+            CourtesyFlush(bridge, batch);
         }
 
         public Task<T> AsRequest<T>()
@@ -86,10 +86,10 @@ internal ref partial struct JsonRpcWriter
             var id = Guid.NewGuid();
             var task = bridge.AwaitResult<T>(id);
 
-            writer.Utf8Json.WriteString("id", id);
-            writer.Utf8Json.WriteEndObject();
+            batch.Utf8Json.WriteString("id", id);
+            batch.Utf8Json.WriteEndObject();
 
-            CourtesyFlush(bridge, writer);
+            CourtesyFlush(bridge, batch);
 
             return task;
         }
@@ -97,14 +97,14 @@ internal ref partial struct JsonRpcWriter
         private void TryStartParamsArray()
         {
             if (_isFirstParam)
-                writer.Utf8Json.WriteStartArray("params");
+                batch.Utf8Json.WriteStartArray("params");
             _isFirstParam = false;
         }
 
         private void TryEndParamsArray()
         {
             if (!_isFirstParam)
-                writer.Utf8Json.WriteEndArray();
+                batch.Utf8Json.WriteEndArray();
         }
     }
 }

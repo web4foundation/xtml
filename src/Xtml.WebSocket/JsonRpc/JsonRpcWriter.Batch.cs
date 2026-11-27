@@ -20,7 +20,7 @@ internal ref partial struct JsonRpcWriter
         // public bool IsBatching => t_current != null;
         public bool IsBatching { get; set; } = false;
 
-        public Stopwatch LastFlush { get; set; } = Stopwatch.StartNew();
+        // public Stopwatch LastFlush { get; set; } = Stopwatch.StartNew();
 
         public Batch()
         {

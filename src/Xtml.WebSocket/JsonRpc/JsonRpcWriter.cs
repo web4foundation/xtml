@@ -38,13 +38,13 @@ internal ref partial struct JsonRpcWriter
 
         bridge.FlushToWebSocket(output);
 
-        batch.LastFlush.Restart();
+        // batch.LastFlush.Restart();
     }
 
     private static void CourtesyFlush(Bridge bridge, Batch batch)
     {
         bool isUnbatched = !batch.IsBatching;
-        bool tooSlow = batch.LastFlush.Elapsed > bridge.RefreshRate;
+        bool tooSlow = false;//batch.LastFlush.Elapsed > bridge.RefreshRate;
         bool tooBig = batch.Utf8Json.BytesCommitted + batch.Utf8Json.BytesPending > COURTESY_FLUSH_THRESHOLD;
 
         if (isUnbatched || tooSlow || tooBig)
@@ -62,7 +62,7 @@ internal ref partial struct JsonRpcWriter
             _bridge = bridge;
             _batch = GetWriter();
             _batch.IsBatching = true;
-            _batch.LastFlush.Restart();
+            // _batch.LastFlush.Restart();
         }
 
         public void Dispose()

@@ -5,46 +5,47 @@ internal ref partial struct JsonRpcWriter
     // TODO: Make this configurable?
     private const int COURTESY_FLUSH_THRESHOLD = 2 << 15; // 64k
 
-    public static MessageBuilder Current(Bridge bridge)
-    {
-        var batch = t_current ?? Batch.Get();
-        if (batch.Utf8Json.BytesCommitted + batch.Utf8Json.BytesPending == 0)
-            batch.Utf8Json.WriteStartArray();
-        return new(bridge, batch);
-    }
+    public static MessageBuilder Current(Bridge bridge) => new(bridge, t_current ?? Batch.Get());
+    public static MessageBuilder Current(Bridge bridge, Batch batch) => new(bridge, batch);
 
     private static void Flush(Bridge bridge, Batch batch)
     {
-        if (batch.Utf8Json.BytesCommitted == 0 && batch.Utf8Json.BytesPending <= 1) // i.e. the `[`
-            return; // TODO: Verify how frequent this is.  I do know it happens for every async event listener.  Anywhere else?
-        
-        batch.Utf8Json.WriteEndArray();
-        batch.Utf8Json.Flush();
-
-        var output = batch.Buffer.GetSequenceAndReset();
-        batch.Utf8Json.Reset();
-
-        bridge.FlushToWebSocket(output);
-
-        // batch.LastFlush.Restart();
-        batch.Return();
+        batch.State = BatchState.Flushing;
+        bridge.FlushToWebSocket(batch);
+        t_current = null;
     }
 
     private static void CourtesyFlush(Bridge bridge, Batch batch)
     {
-        bool isUnbatched = !batch.IsBatching;
-        bool tooSlow = false;//batch.LastFlush.Elapsed > bridge.RefreshRate;
-        bool tooBig = batch.Utf8Json.BytesCommitted + batch.Utf8Json.BytesPending > COURTESY_FLUSH_THRESHOLD;
+        switch (batch.State)
+        {
+            case BatchState.Flushing:
+                // Already flushing.  Don't flush again.
+                return;
 
-        if (isUnbatched || tooSlow || tooBig)
-            Flush(bridge, batch);
+            case BatchState.Immediate:
+                Flush(bridge, batch);
+                break;
+
+            case BatchState.Batching:
+                bool tooSlow = false;//bridge.LastFlush.Elapsed > bridge.RefreshRate;
+                bool tooBig = batch.Utf8Json.BytesCommitted + batch.Utf8Json.BytesPending > COURTESY_FLUSH_THRESHOLD;
+
+                if (tooSlow || tooBig)
+                {
+                    Flush(bridge, batch);
+                    // Since this batch was just stolen, we need to replace it.
+                    batch = t_current = Batch.Get();
+                    batch.State = BatchState.Batching;
+                }
+                break;
+        }
     }
 
     // Intentionally a ref struct so it cannot be used across an await boundary.
     internal ref struct FlushDisposable : IDisposable
     {
         private readonly Bridge _bridge;
-        private readonly Batch _batch;
 
         public FlushDisposable(Bridge bridge)
         {
@@ -52,17 +53,15 @@ internal ref partial struct JsonRpcWriter
                 throw new InvalidOperationException("A batch is already active on this thread.  This should be impossible");
             
             _bridge = bridge;
-            _batch = t_current = Batch.Get();
-            // _batch.LastFlush.Restart();
+            var batch = t_current = Batch.Get();
+            batch.State = BatchState.Batching;
         }
 
         public void Dispose()
         {
-            // Do not debounce the Reconciler here.  
-            // The batch is over and the next event listener could be many dozens of milliseconds away.
-            _bridge.Reconcile();
-            Flush(_bridge, _batch);
-            t_current = null;
+            var batch = t_current;
+            ArgumentNullException.ThrowIfNull(batch);
+            Flush(_bridge, batch);
         }
     }
 }

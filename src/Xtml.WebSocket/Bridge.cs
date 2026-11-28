@@ -23,20 +23,24 @@ internal partial class Bridge
     private readonly ILogger _logger;
     private Keyhole[] _snapshot;
     private readonly Channel<JsonRpcMessageOrAsyncCallback> _eventLoopChannel;
-    private readonly Channel<ReadOnlySequence<byte>> _outputChannel;
-    private readonly Stopwatch _lastReconcile = Stopwatch.StartNew();
+    private readonly Channel<JsonRpcBatchAndSnapshot> _outputChannel;
     private Dictionary<Guid, object>? _pendingRequests = null;
 
     public Guid WindowId { get; init; }
     public BrowserProxy Browser { get; init; }
     public List<EventListener> RootEventListeners { get; init; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromMilliseconds(1000d / 60d); // 60fps
+    // public Stopwatch LastFlush { get; init; } = Stopwatch.StartNew();
     public bool ForceSequentialAsync { get; set; } = false;
     
     private record struct JsonRpcMessageOrAsyncCallback(
         ReadOnlySequence<byte>? Message,
         SendOrPostCallback? Callback,
         object? State
+    );
+    private record struct JsonRpcBatchAndSnapshot(
+        JsonRpcWriter.Batch Batch,
+        Keyhole[] Snapshot
     );
 
     private Bridge(Guid windowId, Func<Html> template, List<EventListener> listeners, ILogger logger)
@@ -66,7 +70,7 @@ internal partial class Bridge
             }
         );
 
-        _outputChannel = Channel.CreateBounded<ReadOnlySequence<byte>>(
+        _outputChannel = Channel.CreateBounded<JsonRpcBatchAndSnapshot>(
             options: new(1000) // TODO: Make this limit configurable?
             {
                 AllowSynchronousContinuations = false, // Don't let network jitter impact the event loop.
@@ -74,7 +78,7 @@ internal partial class Bridge
                 SingleReader = true,
                 SingleWriter = false,
             },
-            itemDropped: sequence =>
+            itemDropped: output =>
             {
                 // TODO: WebSocket is borked?  Handle:
                 // - Skip the line and gracefully close it.
@@ -88,10 +92,7 @@ internal partial class Bridge
     {
         HotReload.UpdateApplicationEvent += updatedTypes =>
         {
-            foreach (var bridge in s_bridges.Values)
-            {
-                bridge.Reconcile();
-            }
+            // TODO: This will switch to PubSub
         };
     }
     #endif
@@ -159,7 +160,7 @@ internal partial class Bridge
                 }
 
                 // Opportunistic reconciliation, so the reconciler doesn't starve when the even loop gets backed up.
-                Reconcile(debounce: true);
+                // Reconcile(debounce: true);
             }
         }
     }
@@ -309,8 +310,23 @@ internal partial class Bridge
             try
             {
                 var output = await _outputChannel.Reader.ReadAsync(cancel);
-                await webSocket.SendAsync(output, cancel);
-                output.ReturnToPool();
+
+                if (output.Snapshot is { Length: > 0 } snapshot)
+                {
+                    Reconciler<KeyholesClient>.Diff(
+                        mutator: new KeyholesClient(this, output.Batch), 
+                        oldBuffer: _snapshot, 
+                        newBuffer: snapshot
+                    );
+                    ArrayPool<Keyhole>.Shared.Return(_snapshot);
+                    _snapshot = snapshot;
+                }
+
+                if (output.Batch.GetOutputAndReset() is { Length: > 0 } buffer)
+                {
+                    await webSocket.SendAsync(buffer, cancel);
+                    buffer.ReturnToPool();
+                }
             }
             catch (OperationCanceledException ex)
             {
@@ -323,9 +339,18 @@ internal partial class Bridge
         }
     }
 
-    public void FlushToWebSocket(ReadOnlySequence<byte> output)
+    public void FlushToWebSocket(JsonRpcWriter.Batch batch)
     {
-        if (!_outputChannel.Writer.TryWrite(output))
+        // Any thread can capture a snapshot and dirty-check it.
+        // Reconciliation only runs from the output channel.
+        var snapshot = CaptureSnapshot();
+        if (!Reconciler<KeyholesClient>.IsDirty(_snapshot, snapshot))
+        {
+            ArrayPool<Keyhole>.Shared.Return(snapshot);
+            snapshot = [];
+        }
+
+        if (!_outputChannel.Writer.TryWrite(new(batch, snapshot)))
             throw new InvalidOperationException("Failed to write to output channel."); // TODO: How to fail?
     }
 
@@ -371,29 +396,6 @@ internal partial class Bridge
             // The only way to find it is to compose the HTML and compare every keyhole to the supplied key.
             _ => FindKeyComposer.Shared.FindEventListener(key, _template),
         };
-    }
-
-    public void Reconcile(bool debounce = false)
-    {
-        if (debounce && _lastReconcile.Elapsed < RefreshRate)
-            return;
-
-        try
-        {
-            Keyhole[] oldBuffer = _snapshot;
-            Keyhole[] newBuffer = CaptureSnapshot();
-
-            Reconciler<KeyholesClient>.Diff(new(this), oldBuffer, newBuffer);
-
-            // Keep this snapshot buffer around to use as the "before" next time.
-            _snapshot = newBuffer;
-            ArrayPool<Keyhole>.Shared.Return(oldBuffer);
-            _lastReconcile.Restart();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Unexpected error reconciling diffs: {Message}", ex.Message);
-        }
     }
 
     private Keyhole[] CaptureSnapshot()

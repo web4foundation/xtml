@@ -13,6 +13,25 @@ public ref struct Reconciler<T>(T mutator, Keyhole[] oldBuffer, Keyhole[] newBuf
     public static readonly byte[] ROOT_KEY = "root"u8.ToArray();
     private readonly T _mutator = mutator;
 
+    public static bool IsDirty(Keyhole[] oldBuffer, Keyhole[] newBuffer)
+    {
+        using var perf = Perf.Measure("Reconciler.IsDirty"); // TODO: Remove PerfCheck
+
+        int oldLength = oldBuffer[0].WriteHead;
+        int newLength = newBuffer[0].WriteHead;
+        if (oldLength != newLength)
+            return true;
+        
+        ref byte oldStart = ref Unsafe.As<Keyhole, byte>(ref MemoryMarshal.GetArrayDataReference(oldBuffer));
+        ref byte newStart = ref Unsafe.As<Keyhole, byte>(ref MemoryMarshal.GetArrayDataReference(newBuffer));
+
+        int totalBytes = Unsafe.SizeOf<Keyhole>() * newLength;
+        ReadOnlySpan<byte> oldBytes = MemoryMarshal.CreateReadOnlySpan(ref oldStart, totalBytes);
+        ReadOnlySpan<byte> newBytes = MemoryMarshal.CreateReadOnlySpan(ref newStart, totalBytes);
+
+        return !oldBytes.SequenceEqual(newBytes);
+    }
+    
     public static void Diff(T mutator, Keyhole[] oldBuffer, Keyhole[] newBuffer)
     {
         using var perf = Perf.Measure("Reconciler.Diff"); // TODO: Remove PerfCheck

@@ -30,7 +30,7 @@ internal partial class Bridge
     public BrowserProxy Browser { get; init; }
     public List<EventListener> RootEventListeners { get; init; }
     public TimeSpan RefreshRate { get; set; } = TimeSpan.FromMilliseconds(1000d / 60d); // 60fps
-    // public Stopwatch LastFlush { get; init; } = Stopwatch.StartNew();
+    public Stopwatch LastFlush { get; init; } = Stopwatch.StartNew();
     public bool ForceSequentialAsync { get; set; } = false;
     
     private record struct JsonRpcMessageOrAsyncCallback(
@@ -352,6 +352,8 @@ internal partial class Bridge
 
         if (!_outputChannel.Writer.TryWrite(new(batch, snapshot)))
             throw new InvalidOperationException("Failed to write to output channel."); // TODO: How to fail?
+
+        LastFlush.Restart();
     }
 
     public Task<T> AwaitResult<T>(Guid id)

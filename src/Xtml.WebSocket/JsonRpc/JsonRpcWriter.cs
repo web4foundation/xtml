@@ -28,7 +28,7 @@ internal ref partial struct JsonRpcWriter
                 break;
 
             case BatchState.Batching:
-                bool tooSlow = false;//bridge.LastFlush.Elapsed > bridge.RefreshRate;
+                bool tooSlow = bridge.LastFlush.Elapsed > bridge.RefreshRate;
                 bool tooBig = batch.Utf8Json.BytesCommitted + batch.Utf8Json.BytesPending > COURTESY_FLUSH_THRESHOLD;
 
                 if (tooSlow || tooBig)
@@ -53,6 +53,7 @@ internal ref partial struct JsonRpcWriter
                 throw new InvalidOperationException("A batch is already active on this thread.  This should be impossible");
             
             _bridge = bridge;
+            _bridge.LastFlush.Restart();
             var batch = t_current = Batch.Get();
             batch.State = BatchState.Batching;
         }
